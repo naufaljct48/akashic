@@ -4,7 +4,36 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Akashic Dex — Semantic Comic Discovery & AI Recommendation Engine</title>
-    <meta name="description" content="AI-powered discovery platform and semantic recommendation engine for Manga, Manhwa, and Manhua." />
+    <meta name="description" content="Describe a story and find the comic. Semantic search across 17,900+ manga, manhwa, and manhua — free, no account." />
+
+    <!--
+      Link previews. Static because this is an SPA with no SSR: crawlers read
+      the served HTML and never run the bundle, so anything set from React
+      would be invisible to them. og:image must be absolute for the same
+      reason — Facebook and WhatsApp do not resolve relative paths.
+
+      Regenerate the card with `python scripts/make-og-image.py`; it renders
+      from the design tokens and the app's own fonts.
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Akashic Dex" />
+    <meta property="og:url" content="https://akashic-dex.vercel.app/" />
+    <meta property="og:title" content="Akashic Dex — describe a story, find the comic" />
+    <meta property="og:description" content="Semantic search across 17,900+ manga, manhwa, and manhua. Describe the plot in your own words and it finds the title. Free, no account." />
+    <meta property="og:image" content="https://akashic-dex.vercel.app/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Akashic Dex — the query “cerita tentang raksasa yang memakan manusia di balik tembok” resolving to Attack on Titan." />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:locale:alternate" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Akashic Dex — describe a story, find the comic" />
+    <meta name="twitter:description" content="Semantic search across 17,900+ manga, manhwa, and manhua. Describe the plot in your own words and it finds the title. Free, no account." />
+    <meta name="twitter:image" content="https://akashic-dex.vercel.app/og-image.png" />
+
+    <link rel="canonical" href="https://akashic-dex.vercel.app/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="alternate icon" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />

@@ -352,38 +352,60 @@ serve(async (req) => {
       console.error('[ai-curator] vector retrieval skipped:', err);
     }
 
-    // Three providers, tried in order. An attempt is (base, key, model) rather
-    // than a bare model id because the chain crosses provider boundaries — the
-    // whole point is surviving one of them being down, which is not hypothetical:
+    // Providers tried in order. An attempt is (base, key, model) rather than a
+    // bare model id because the chain crosses provider boundaries — the whole
+    // point is surviving one of them being down, which is not hypothetical:
     // b.ai spent a whole day answering 503 activity_cost_limit_reached.
     //
-    // Ordered by measured latency on the real 24-candidate workload, fastest
-    // first, because every position is a fully capable curator and the user is
-    // waiting: minimax-m3 ~5s, mistral-small ~2-3s, minimax-m2.7 ~20s,
-    // deepseek ~24s. Putting the slowest first cost 20 seconds on the happy
-    // path for no gain in answer quality.
+    // Ordered by latency measured on the real workload — 28 candidates, ~7,400
+    // prompt tokens — because every position is a fully capable curator and the
+    // user is waiting:
+    //
+    //   mistral-small-2603                         5.8s   ~$0.0015 / query
+    //   @cf/meta/llama-3.3-70b-instruct-fp8-fast   7.6s   ~287 neurons / query
+    //   @cf/openai/gpt-oss-20b                     (unmeasured on this workload)
+    //
+    // OpenRouter was dropped rather than reordered: its :free variants measured
+    // as the slowest path here (22.5s — minimax-m3 fails, then m2.7 spends most
+    // of its output budget on reasoning tokens), and the ids churn, so a
+    // renamed or retired model fails silently one position deep in a chain
+    // nobody watches.
+    //
+    // ⚠ THE COST OF THE CLOUDFLARE FALLBACKS IS NOT WHAT IT LOOKS LIKE.
+    // Both draw on the same 10,000-neuron daily allocation as the embedding and
+    // the query translation this function performs on EVERY search. Ranking
+    // costs ~287 neurons a query against ~2.5 for embed+translate — so roughly
+    // 35 fallback rankings exhaust the day, and when they do, vector retrieval
+    // stops for everyone until the reset. It fails soft, which means nothing
+    // errors: search quietly drops back to keyword candidates.
+    //
+    // This was measured the expensive way, by exhausting it. If Mistral is ever
+    // unreliable enough that these positions see real traffic, enable Workers
+    // Paid ($5/mo) — it removes the daily cap and bills ~$0.003 a ranking, and
+    // the starvation mode disappears with it.
     const csv = (v: string) => v.split(',').map((m) => m.trim()).filter(Boolean);
 
+    const cfAccount = await getSecret('CLOUDFLARE_ACCOUNT_ID');
+    const cfToken = cfAccount ? await getSecret('CLOUDFLARE_API_TOKEN') : '';
+
     const providers = [
-      {
-        key: await getSecret('OPENROUTER_API_KEY'),
-        base: await getSecret('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'),
-        // Free models are rate-limited upstream by whoever hosts them, so one id
-        // is a single point of failure — two of them is not redundancy for its
-        // own sake, it is what makes the free tier usable at all.
-        models: csv(
-          await getSecret('OPENROUTER_MODELS', 'minimax/minimax-m3:free,minimax/minimax-m2.7:free')
-        ),
-      },
       {
         key: await getSecret('MISTRAL_API_KEY'),
         base: await getSecret('MISTRAL_BASE_URL', 'https://api.mistral.ai/v1'),
         models: csv(await getSecret('MISTRAL_MODELS', 'mistral-small-2603')),
       },
       {
-        key: await getSecret('AI_API_KEY'),
-        base: await getSecret('AI_BASE_URL', 'https://api.b.ai/v1'),
-        models: csv(await getSecret('AI_MODEL', 'deepseek-v4-flash')),
+        // Workers AI speaks the OpenAI wire format at this path, so it needs no
+        // client of its own — same account and token as the embeddings above,
+        // which is exactly why the budget note applies.
+        key: cfToken,
+        base: `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/ai/v1`,
+        models: csv(
+          await getSecret(
+            'CLOUDFLARE_RANK_MODELS',
+            '@cf/meta/llama-3.3-70b-instruct-fp8-fast,@cf/openai/gpt-oss-20b'
+          )
+        ),
       },
     ];
 
@@ -431,9 +453,6 @@ serve(async (req) => {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${attempt.key}`,
-            // OpenRouter attribution. Ignored by other providers.
-            'HTTP-Referer': 'https://akashic-dex.vercel.app',
-            'X-Title': 'Akashic Dex',
           },
           body: JSON.stringify({
             model: attempt.model,
