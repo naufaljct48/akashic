@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { mergeCandidates, VECTOR_SHARE } from './merge.ts';
 
-// Comma-separated allowlist, e.g. "https://akashic.vercel.app,http://localhost:5173".
+// Comma-separated allowlist, e.g. "https://akashic-dex.vercel.app,http://localhost:5173".
 // Unset = allow any origin (CORS is not a real gate anyway; the rate limiter below is).
 const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') || '')
   .split(',')
@@ -432,7 +432,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${attempt.key}`,
             // OpenRouter attribution. Ignored by other providers.
-            'HTTP-Referer': 'https://akashic-lime.vercel.app',
+            'HTTP-Referer': 'https://akashic-dex.vercel.app',
             'X-Title': 'Akashic Dex',
           },
           body: JSON.stringify({

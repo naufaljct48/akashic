@@ -1,11 +1,11 @@
 {
   "name": "Akashic Dex - AI Manga & Manhwa Discovery",
   "short_name": "Akashic Dex",
-  "description": "Deterministic semantic anime, manga, and manhwa discovery engine powered by AI.",
+  "description": "Semantic discovery engine for manga, manhwa, and manhua \u2014 describe a story and find it.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0d0e12",
-  "theme_color": "#ff334b",
+  "background_color": "#e4ddcd",
+  "theme_color": "#e4ddcd",
   "orientation": "portrait-primary",
   "icons": [
     {

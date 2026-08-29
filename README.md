@@ -68,7 +68,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 The AI provider key is **not** an app env var — it lives in the Edge Function:
 
 ```bash
-supabase secrets set AI_API_KEY=... ALLOWED_ORIGINS=https://your-app.vercel.app
+supabase secrets set AI_API_KEY=... ALLOWED_ORIGINS=https://akashic-dex.vercel.app
 ```
 
 ### 3. Run Development Server
