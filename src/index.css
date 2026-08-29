@@ -26,62 +26,48 @@
 }
 
 @font-face {
-  font-family: 'Archivo';
+  font-family: 'Plus Jakarta Sans';
   font-style: italic;
-  font-weight: 100 900;
+  font-weight: 200 800;
   font-display: swap;
-  src: url('/fonts/archivo-italic-latin-ext.woff2') format('woff2');
+  src: url('/fonts/jakarta-italic-latin-ext.woff2') format('woff2');
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 @font-face {
-  font-family: 'Archivo';
+  font-family: 'Plus Jakarta Sans';
   font-style: italic;
-  font-weight: 100 900;
+  font-weight: 200 800;
   font-display: swap;
-  src: url('/fonts/archivo-italic-latin.woff2') format('woff2');
+  src: url('/fonts/jakarta-italic-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: 'Archivo';
+  font-family: 'Plus Jakarta Sans';
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 200 800;
   font-display: swap;
-  src: url('/fonts/archivo-normal-latin-ext.woff2') format('woff2');
+  src: url('/fonts/jakarta-normal-latin-ext.woff2') format('woff2');
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 @font-face {
-  font-family: 'Archivo';
+  font-family: 'Plus Jakarta Sans';
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 200 800;
   font-display: swap;
-  src: url('/fonts/archivo-normal-latin.woff2') format('woff2');
+  src: url('/fonts/jakarta-normal-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* ==========================================================================
-   WEEKLY ANTHOLOGY — the printed world
-   --------------------------------------------------------------------------
-   The catalog is this week's issue, not a dashboard. Everything here derives
-   from cheap pulp periodical printing: a tinted paper ground, dense process
-   ink, heavy condensed gothic for display, and hairline rules doing the work
-   that borders and card shells used to do.
-
-   Two rules govern the whole file:
-
-   1. ONE SPOT COLOR PER VIEW. A section sets `--spot` once on its own
-      container; every rule, mark, tab, and numeral inside it reads from that
-      single value. Nothing hardcodes an accent.
-   2. NO CARD SHELLS. Hierarchy comes from scale and rules. If something needs
-      to feel separate, it gets a rule or a paper shift, never a rounded box
-      with a border and a shadow.
-   ========================================================================== */
-
+/*
+ * Point Tailwind's own font utilities at the project's faces, so `font-sans`
+ * on the app root resolves to the reading voice rather than the system stack.
+ */
 @theme {
-  --font-sans: 'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Anton', 'Archivo', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Anton', 'Plus Jakarta Sans', sans-serif;
 }
 
 /* --------------------------------------------------------------------------
@@ -195,7 +181,7 @@ body {
   padding: 0;
   background-color: var(--paper);
   color: var(--ink);
-  font-family: 'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-feature-settings: 'tnum' 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -239,7 +225,7 @@ body::after {
 
   /* The masthead voice: heavy condensed gothic, used at size or not at all. */
   .masthead {
-    font-family: 'Anton', 'Archivo', sans-serif;
+    font-family: 'Anton', 'Plus Jakarta Sans', sans-serif;
     font-weight: 400;
     letter-spacing: 0.005em;
     line-height: 0.86;
@@ -252,7 +238,7 @@ body::after {
    * be a costume for "technical"; this is print, and print uses small caps.
    */
   .stamp {
-    font-family: 'Archivo', sans-serif;
+    font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.11em;

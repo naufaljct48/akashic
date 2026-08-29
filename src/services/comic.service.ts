@@ -130,6 +130,32 @@ export async function findComicByTitle(title: string): Promise<ComicSearchResult
 }
 
 /**
+ * The finder's lookup: the catalog first, AniList only when the catalog is empty.
+ *
+ * The spotlight used to query `getComics` alone, so anything outside the
+ * ingested ~6,600 rows simply did not exist to it — "Accel World" and "Guilty
+ * Crown" returned nothing even though AniList carries both. Every other search
+ * path in this file already falls through to AniList; this one never did.
+ *
+ * The fallback fires only on an empty catalog result, not on a thin one. The
+ * finder runs on a 50ms debounce, so an AniList round trip per keystroke would
+ * cost the thing its speed and would rate-limit us besides — and when the
+ * catalog answered at all, its answer is the one with local data attached.
+ */
+export async function searchTitlesQuick(
+  query: string,
+  limit = 8
+): Promise<ComicSearchResult[]> {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  const local = await getComics({ query: trimmed, limit });
+  if (local.length > 0) return local as ComicSearchResult[];
+
+  return await searchLiveAniList(trimmed, limit);
+}
+
+/**
  * Checks if user is asking an AI recommendation query vs typing a direct title.
  */
 function isSemanticIntent(query: string): boolean {

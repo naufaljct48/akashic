@@ -8,6 +8,12 @@
         "value": "2px",
         "createdAt": "2026-08-29T14:18:55.684Z",
         "reason": "flag-icons.tsx: the 2px corner is the rendering of a national flag's own shape, not a UI radius on the world's near-zero scale"
+      },
+      {
+        "rule": "overused-font",
+        "value": "plus jakarta sans",
+        "createdAt": "2026-08-29T15:44:19.866Z",
+        "reason": "user confirmed: asked explicitly to swap the reading face from Archivo to Plus Jakarta Sans; the saturated-face warning was raised to them before the swap and they chose it anyway"
       }
     ]
   }

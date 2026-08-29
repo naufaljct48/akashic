@@ -34,34 +34,34 @@ colors:
   ink-blue-night: "#6b79cf"
 typography:
   masthead:
-    fontFamily: "Anton, Archivo, sans-serif"
+    fontFamily: "Anton, Plus Jakarta Sans, sans-serif"
     fontSize: "clamp(2.6rem, 10vw, 5.5rem)"
     fontWeight: 400
     lineHeight: 0.86
     letterSpacing: "0.005em"
   headline:
-    fontFamily: "Anton, Archivo, sans-serif"
+    fontFamily: "Anton, Plus Jakarta Sans, sans-serif"
     fontSize: "clamp(1.15rem, 4.5vw, 1.55rem)"
     fontWeight: 400
     lineHeight: 1.05
     letterSpacing: "0.005em"
   title:
-    fontFamily: "Archivo, sans-serif"
+    fontFamily: "Plus Jakarta Sans, sans-serif"
     fontSize: "13px"
     fontWeight: 600
     lineHeight: 1.25
   body:
-    fontFamily: "Archivo, sans-serif"
+    fontFamily: "Plus Jakarta Sans, sans-serif"
     fontSize: "15px"
     fontWeight: 400
     lineHeight: 1.625
   caption:
-    fontFamily: "Archivo, sans-serif"
+    fontFamily: "Plus Jakarta Sans, sans-serif"
     fontSize: "12px"
     fontWeight: 400
     lineHeight: 1.375
   stamp:
-    fontFamily: "Archivo, sans-serif"
+    fontFamily: "Plus Jakarta Sans, sans-serif"
     fontSize: "9px"
     fontWeight: 700
     letterSpacing: "0.11em"
@@ -152,7 +152,7 @@ Two editions, not a theme toggle. The day run is ink on pulp; the night run is t
 - Tinted pulp ground under a permanent halftone screen; no white, no pure black
 - One spot ink per view, inherited and re-derived per element
 - Zero radius everywhere; hierarchy from scale and rules, never from shells
-- Anton for display at size, Archivo for everything else, no monospace
+- Anton for display at size, Plus Jakarta Sans for everything else, no monospace
 - Tabular figures app-wide (`font-feature-settings: 'tnum' 1` on `body`)
 - One authored entrance gesture: plates striking the sheet, staggered
 
@@ -186,9 +186,9 @@ Three values are re-declared on `*` rather than on `:root`, so each element deri
 
 ## Typography
 
-**Display Font:** Anton (self-hosted, latin + latin-ext, `font-display: swap`), falling back to Archivo
-**Body Font:** Archivo (variable 100–900, upright and italic, self-hosted)
-**Label Font:** Archivo at 700 in tracked caps — this world's "small caps" credit voice
+**Display Font:** Anton (self-hosted, latin + latin-ext, `font-display: swap`), falling back to Plus Jakarta Sans
+**Body Font:** Plus Jakarta Sans (variable 200–800, upright and italic, self-hosted)
+**Label Font:** Plus Jakarta Sans at 700 in tracked caps — this world's "small caps" credit voice
 
 **Character:** Heavy condensed gothic used at size or not at all, against a neutral grotesque that carries every sentence. There is no third face and deliberately no monospace: monospace here would be a costume for "technical", and a periodical sets its labels in tiny tracked caps instead.
 
@@ -200,13 +200,13 @@ not a decision.
 - **Masthead** (Anton 400, `clamp(2.6rem, 10vw, 5.5rem)`, 0.86): page one only, uppercase, overprinted with its own ghost.
 - **Running head** (Anton 400, **20px** rising to **24px** at `sm`): the wordmark in the fixed bar on inner sections only. Page one drops it, because the masthead below already sets the name at issue scale.
 - **Headline** (Anton 400, `clamp(1.15rem, 4.5vw, 1.55rem)`, 1.05): the entry spread's title. The empty-state line and the drawer head use the same voice at `text-2xl` / `text-lg`.
-- **Title** (Archivo 600, 1.25): entry titles in the contents list, clamped to two lines. Steps: **13px** (plate entries), **15px**, **16px** (`sm`).
-- **Body** (Archivo 400, ~1.6): standfirsts, synopses, and the spread's match rationale. Steps: **13px**, **14px**, **15px**. Measure capped at 62–68ch.
-- **Caption** (Archivo 400, **12px**, 1.375): the entry's blurb — the editor's one-line reason — clamped to two lines at max 27rem.
-- **Stamp** (Archivo 700, 0.11em, uppercase): section names, issue line, quota, credits, kbd hints, format tags. The whole label layer. Steps: **9px**, **10px**, **11px**. Nothing in the label layer goes below 9px.
+- **Title** (Plus Jakarta Sans 600, 1.25): entry titles in the contents list, clamped to two lines. Steps: **13px** (plate entries), **15px**, **16px** (`sm`).
+- **Body** (Plus Jakarta Sans 400, ~1.6): standfirsts, synopses, and the spread's match rationale. Steps: **13px**, **14px**, **15px**. Measure capped at 62–68ch.
+- **Caption** (Plus Jakarta Sans 400, **12px**, 1.375): the entry's blurb — the editor's one-line reason — clamped to two lines at max 27rem.
+- **Stamp** (Plus Jakarta Sans 700, 0.11em, uppercase): section names, issue line, quota, credits, kbd hints, format tags. The whole label layer. Steps: **9px**, **10px**, **11px**. Nothing in the label layer goes below 9px.
 
 ### Named Rules
-**The Three Voices Rule.** Anton, Archivo, and Archivo-as-stamp. No fourth face, no monospace anywhere in the product.
+**The Three Voices Rule.** Anton, Plus Jakarta Sans, and Plus Jakarta Sans-as-stamp. No fourth face, no monospace anywhere in the product.
 
 **The Anton-At-Size Rule.** The display face appears at masthead, numeral, or spread-title scale and nowhere else. Anton below ~18px is a label pretending to be display; use a stamp.
 

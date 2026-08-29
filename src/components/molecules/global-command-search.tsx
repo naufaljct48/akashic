@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Search, X, Star, CornerDownLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useI18n } from '@/core/i18n/context';
-import { getComics } from '@/services/comic.service';
+import { searchTitlesQuick } from '@/services/comic.service';
 import type { Comic } from '@/core/types/comic';
 import { cn } from '@/lib/utils/cn';
 
@@ -69,7 +69,7 @@ export function GlobalCommandSearch({ onSelectComic }: GlobalCommandSearchProps)
     setIsLoading(true);
     const timer = setTimeout(async () => {
       try {
-        const matches = await getComics({ query: query.trim(), limit: 8 });
+        const matches = await searchTitlesQuick(query.trim(), 8);
         setResults(matches);
         setSelectedIndex(0);
       } catch (err) {
