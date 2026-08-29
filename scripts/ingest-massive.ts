@@ -144,8 +144,8 @@ async function ingestBatch(label: string, countryOfOrigin: string | null, sort: 
         console.log(`  ✓ [${type}] ${titleEnglish || titleRomaji} (Ch: ${comicRecord.total_chapters || 'Ongoing'}, Score: ${comicRecord.average_score || '-'})`);
       }
 
-      console.log(`  ⏳ Cooldown 1.2s...`);
-      await sleep(1200);
+      console.log(`  ⏳ Cooldown 2.2s...`);
+      await sleep(2200);
     } catch (err) {
       console.error(`Page ${page} failed:`, err);
     }

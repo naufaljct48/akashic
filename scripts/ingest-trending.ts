@@ -1,6 +1,5 @@
 import { supabase } from './supabase-admin';
 
-
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const TRENDING_AND_NEW_QUERY = `
@@ -45,7 +44,6 @@ query GetTrendingAndNew($page: Int, $perPage: Int, $sort: [MediaSort]) {
 }
 `;
 
-
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -54,8 +52,14 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-async function ingestBatch(sortType: string[], label: string, maxPages = 2) {
+interface IngestStats {
+  synced: number;
+  errors: number;
+}
+
+async function ingestBatch(sortType: string[], label: string, maxPages = 2): Promise<IngestStats> {
   console.log(`\n🚀 [Ingesting ${label}] Sort: ${sortType.join(', ')}`);
+  const stats: IngestStats = { synced: 0, errors: 0 };
 
   for (let page = 1; page <= maxPages; page++) {
     try {
@@ -70,11 +74,18 @@ async function ingestBatch(sortType: string[], label: string, maxPages = 2) {
       });
 
       if (!res.ok) {
-        console.error(`AniList returned status ${res.status}`);
+        console.error(`AniList returned status ${res.status}: ${res.statusText}`);
+        stats.errors++;
         break;
       }
 
       const json = await res.json();
+      if (json.errors && json.errors.length > 0) {
+        console.error(`AniList GraphQL errors:`, json.errors);
+        stats.errors++;
+        break;
+      }
+
       const mediaList = json.data?.Page?.media || [];
 
       for (const item of mediaList) {
@@ -127,28 +138,57 @@ async function ingestBatch(sortType: string[], label: string, maxPages = 2) {
 
         if (comicErr) {
           console.error(`Error saving ${titleEnglish || titleRomaji}:`, comicErr.message);
+          stats.errors++;
           continue;
         }
 
         if (inserted) {
-
+          stats.synced++;
           console.log(`  ✓ Synced: ${titleEnglish || titleRomaji} (${type})`);
         }
       }
 
-      await sleep(1000);
-    } catch (err) {
-      console.error(`Page ${page} failed:`, err);
+      // Safe rate limit cooldown: 2.2s between pages (AniList limit: 30 req/min)
+      await sleep(2200);
+    } catch (err: any) {
+      console.error(`Page ${page} failed with exception:`, err?.message || err);
+      stats.errors++;
     }
   }
+
+  return stats;
 }
 
 async function main() {
   console.log('⚡ Starting Trending & New Releases Auto-Ingestion...');
-  await ingestBatch(['TRENDING_DESC', 'POPULARITY_DESC'], 'Trending Now', 2);
-  await ingestBatch(['UPDATED_AT_DESC'], 'Recently Updated Chapters', 2);
-  await ingestBatch(['START_DATE_DESC', 'POPULARITY_DESC'], 'Newly Released Titles', 2);
+  let totalSynced = 0;
+  let totalErrors = 0;
+
+  const b1 = await ingestBatch(['TRENDING_DESC', 'POPULARITY_DESC'], 'Trending Now', 2);
+  totalSynced += b1.synced;
+  totalErrors += b1.errors;
+
+  const b2 = await ingestBatch(['UPDATED_AT_DESC'], 'Recently Updated Chapters', 2);
+  totalSynced += b2.synced;
+  totalErrors += b2.errors;
+
+  const b3 = await ingestBatch(['START_DATE_DESC', 'POPULARITY_DESC'], 'Newly Released Titles', 2);
+  totalSynced += b3.synced;
+  totalErrors += b3.errors;
+
+  console.log(`\n======================================================`);
+  console.log(`📊 Ingestion Summary: ${totalSynced} synced, ${totalErrors} errors.`);
+  console.log(`======================================================`);
+
+  if (totalErrors > 0) {
+    console.error(`❌ Ingestion completed with ${totalErrors} errors. Exiting with failure code.`);
+    process.exit(1);
+  }
+
   console.log('\n🎉 Auto-Ingestion Completed Successfully!');
 }
 
-main();
+main().catch((err) => {
+  console.error('Fatal ingestion error:', err);
+  process.exit(1);
+});

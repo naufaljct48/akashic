@@ -2,22 +2,35 @@ import { supabase } from './supabase-admin';
 import * as fs from 'fs';
 import * as path from 'path';
 
-
 const CHECKPOINT_FILE = path.resolve(process.cwd(), 'data/ingest-checkpoint.json');
-const TARGET_TOTAL = 10000;
+const TARGET_TOTAL = 30000;
 const PER_PAGE = 50; // Max AniList GraphQL perPage
+const MAX_PAGES_PER_YEAR = 6; // 6 pages * 50 = 300 titles per year partition (well below AniList 5,000 limit)
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const BATCH_QUERY = `
-query GetBatchComics($page: Int, $perPage: Int, $countryOfOrigin: CountryCode, $sort: [MediaSort]) {
+query GetBatchComics(
+  $page: Int,
+  $perPage: Int,
+  $countryOfOrigin: CountryCode,
+  $startDate_greater: FuzzyDateInt,
+  $startDate_lesser: FuzzyDateInt,
+  $sort: [MediaSort]
+) {
   Page(page: $page, perPage: $perPage) {
     pageInfo {
       hasNextPage
       currentPage
       lastPage
     }
-    media(type: MANGA, countryOfOrigin: $countryOfOrigin, sort: $sort) {
+    media(
+      type: MANGA,
+      countryOfOrigin: $countryOfOrigin,
+      startDate_greater: $startDate_greater,
+      startDate_lesser: $startDate_lesser,
+      sort: $sort
+    ) {
       id
       idMal
       title {
@@ -52,33 +65,46 @@ query GetBatchComics($page: Int, $perPage: Int, $countryOfOrigin: CountryCode, $
 }
 `;
 
+interface CountryPartition {
+  country: 'JP' | 'KR' | 'CN';
+  label: string;
+  startYear: number;
+  endYear: number;
+}
+
+const PARTITIONS: CountryPartition[] = [
+  { country: 'JP', label: 'Japanese Manga (1995-2026)', startYear: 1995, endYear: 2026 },
+  { country: 'KR', label: 'Korean Manhwa (2000-2026)', startYear: 2000, endYear: 2026 },
+  { country: 'CN', label: 'Chinese Manhua (2005-2026)', startYear: 2005, endYear: 2026 },
+];
+
 interface Checkpoint {
-  categoryIndex: number;
+  partitionIndex: number;
+  currentYear: number;
   currentPage: number;
   totalIngested: number;
   lastUpdated: string;
 }
 
-const CATEGORIES = [
-  { label: 'Top Popular Manhwa (Korea)', country: 'KR', sort: ['POPULARITY_DESC', 'SCORE_DESC'], maxPages: 60 },
-  { label: 'Top Scored Manhwa (Korea)', country: 'KR', sort: ['SCORE_DESC', 'POPULARITY_DESC'], maxPages: 40 },
-  { label: 'Top Popular Manga (Japan)', country: 'JP', sort: ['POPULARITY_DESC', 'SCORE_DESC'], maxPages: 60 },
-  { label: 'Top Scored Manga (Japan)', country: 'JP', sort: ['SCORE_DESC', 'POPULARITY_DESC'], maxPages: 40 },
-  { label: 'Top Popular Manhua (China)', country: 'CN', sort: ['POPULARITY_DESC', 'SCORE_DESC'], maxPages: 40 },
-  { label: 'Top Scored Manhua (China)', country: 'CN', sort: ['SCORE_DESC', 'POPULARITY_DESC'], maxPages: 20 },
-  { label: 'Trending Worldwide All Formats', country: null, sort: ['TRENDING_DESC', 'POPULARITY_DESC'], maxPages: 40 },
-];
-
 function loadCheckpoint(): Checkpoint {
   try {
     if (fs.existsSync(CHECKPOINT_FILE)) {
       const raw = fs.readFileSync(CHECKPOINT_FILE, 'utf-8');
-      return JSON.parse(raw);
+      const cp = JSON.parse(raw);
+      if (typeof cp.partitionIndex === 'number' && typeof cp.currentYear === 'number') {
+        return cp;
+      }
     }
   } catch (err) {
     console.warn('Could not read checkpoint, starting fresh.');
   }
-  return { categoryIndex: 0, currentPage: 1, totalIngested: 0, lastUpdated: new Date().toISOString() };
+  return {
+    partitionIndex: 0,
+    currentYear: PARTITIONS[0].startYear,
+    currentPage: 1,
+    totalIngested: 0,
+    lastUpdated: new Date().toISOString(),
+  };
 }
 
 function saveCheckpoint(cp: Checkpoint) {
@@ -91,7 +117,6 @@ function saveCheckpoint(cp: Checkpoint) {
   }
 }
 
-
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -100,7 +125,7 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-async function fetchWithRetry(query: string, variables: any, maxRetries = 4): Promise<any> {
+async function fetchWithRetry(query: string, variables: any, maxRetries = 5): Promise<any> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const res = await fetch('https://graphql.anilist.co', {
@@ -126,128 +151,173 @@ async function fetchWithRetry(query: string, variables: any, maxRetries = 4): Pr
       return await res.json();
     } catch (err: any) {
       if (attempt === maxRetries) throw err;
-      const backoff = attempt * 2000;
+      const backoff = attempt * 3000;
       console.warn(`[Fetch Error] ${err.message}. Retrying in ${backoff}ms...`);
       await sleep(backoff);
     }
   }
 }
 
-async function start10kIngestion() {
+async function startYearPartitionedIngestion() {
   console.log(`\n======================================================`);
-  console.log(`🚀 AKASHIC DEX: 10,000 COMIC INGESTION PIPELINE`);
+  console.log(`🚀 AKASHIC DEX: YEAR-PARTITIONED INGESTION PIPELINE`);
+  console.log(`🎯 Target: ${TARGET_TOTAL} titles (Rate Limit: 2.2s cooldown / ~27 req/min)`);
   console.log(`======================================================`);
 
   let checkpoint = loadCheckpoint();
-  console.log(`Resuming from Category: ${checkpoint.categoryIndex}, Page: ${checkpoint.currentPage}, Ingested: ${checkpoint.totalIngested}/${TARGET_TOTAL}`);
+  console.log(
+    `Resuming from Partition: ${checkpoint.partitionIndex} (${PARTITIONS[checkpoint.partitionIndex]?.label ?? 'Done'}), Year: ${checkpoint.currentYear}, Page: ${checkpoint.currentPage}, Total Ingested: ${checkpoint.totalIngested}/${TARGET_TOTAL}`
+  );
 
-  for (let cIdx = checkpoint.categoryIndex; cIdx < CATEGORIES.length; cIdx++) {
-    const cat = CATEGORIES[cIdx];
-    console.log(`\n📂 [Category ${cIdx + 1}/${CATEGORIES.length}] ${cat.label} (Max Pages: ${cat.maxPages})`);
+  for (let pIdx = checkpoint.partitionIndex; pIdx < PARTITIONS.length; pIdx++) {
+    const part = PARTITIONS[pIdx];
+    console.log(`\n📂 [Partition ${pIdx + 1}/${PARTITIONS.length}] ${part.label}`);
 
-    const startPage = cIdx === checkpoint.categoryIndex ? checkpoint.currentPage : 1;
+    const startYear = pIdx === checkpoint.partitionIndex ? checkpoint.currentYear : part.startYear;
 
-    for (let page = startPage; page <= cat.maxPages; page++) {
-      if (checkpoint.totalIngested >= TARGET_TOTAL) {
-        console.log(`\n🎯 Reached target ${TARGET_TOTAL} titles! Pipeline complete.`);
-        return;
+    for (let year = startYear; year <= part.endYear; year++) {
+      const startPage =
+        pIdx === checkpoint.partitionIndex && year === checkpoint.currentYear
+          ? checkpoint.currentPage
+          : 1;
+
+      console.log(`\n📅 --- Year ${year} (${part.country}) ---`);
+
+      for (let page = startPage; page <= MAX_PAGES_PER_YEAR; page++) {
+        if (checkpoint.totalIngested >= TARGET_TOTAL) {
+          console.log(`\n🎯 Reached target ${TARGET_TOTAL} titles! Pipeline complete.`);
+          return;
+        }
+
+        console.log(`  📄 Fetching Year ${year} Page ${page}/${MAX_PAGES_PER_YEAR}... [Total: ${checkpoint.totalIngested}]`);
+
+        try {
+          const startDate_greater = year * 10000;
+          const startDate_lesser = (year + 1) * 10000;
+
+          const json = await fetchWithRetry(BATCH_QUERY, {
+            page,
+            perPage: PER_PAGE,
+            countryOfOrigin: part.country,
+            startDate_greater,
+            startDate_lesser,
+            sort: ['POPULARITY_DESC', 'SCORE_DESC'],
+          });
+
+          const mediaList = json.data?.Page?.media || [];
+          if (mediaList.length === 0) {
+            console.log(`  End of results for Year ${year}.`);
+            break;
+          }
+
+          const comicBatch: any[] = [];
+
+          for (const item of mediaList) {
+            const titleRomaji = item.title?.romaji || 'Unknown Title';
+            const titleEnglish = item.title?.english || null;
+            const baseSlug = slugify(titleEnglish || titleRomaji) || `comic-${item.id}`;
+
+            const type =
+              item.countryOfOrigin === 'KR'
+                ? 'MANHWA'
+                : item.countryOfOrigin === 'CN'
+                ? 'MANHUA'
+                : 'MANGA';
+
+            const topTags =
+              item.tags
+                ?.filter((t: any) => t.rank >= 40)
+                ?.slice(0, 8)
+                ?.map((t: any) => t.name) || [];
+
+            const comicRecord = {
+              source_id: item.id,
+              id_mal: item.idMal || null,
+              slug: baseSlug,
+              title_romaji: titleRomaji,
+              title_english: titleEnglish,
+              title_native: item.title?.native || null,
+              synonyms: item.synonyms || [],
+              type,
+              format: item.format === 'ONE_SHOT' ? ('ONE_SHOT' as const) : ('MANGA' as const),
+              status: item.status === 'FINISHED' ? ('FINISHED' as const) : ('RELEASING' as const),
+              synopsis: item.description?.replace(/<[^>]*>?/gm, '') || null,
+              genres: item.genres || [],
+              tags: topTags,
+              total_chapters: item.chapters || null,
+              release_year: item.startDate?.year || year,
+              average_score: item.averageScore || null,
+              popularity: item.popularity || null,
+              cover_image_url: item.coverImage?.extraLarge || item.coverImage?.large || null,
+              banner_image_url: item.bannerImage || null,
+              country_of_origin: item.countryOfOrigin || part.country,
+              site_url: item.siteUrl || `https://anilist.co/manga/${item.id}`,
+            };
+
+            comicBatch.push(comicRecord);
+          }
+
+          // Upsert records one by one or in batch, with collision handling
+          let savedInPage = 0;
+          for (const record of comicBatch) {
+            let { error: err } = await (supabase.from('comics') as any)
+              .upsert(record, { onConflict: 'source_id' });
+
+            if (err && err.message?.includes('comics_slug_key')) {
+              // Slug collision with another source_id -> disambiguate slug
+              record.slug = `${record.slug}-${record.source_id}`;
+              const retry = await (supabase.from('comics') as any)
+                .upsert(record, { onConflict: 'source_id' });
+              err = retry.error;
+            }
+
+            if (err) {
+              console.error(`    ❌ Error saving ${record.title_romaji} (${record.source_id}):`, err.message);
+            } else {
+              savedInPage++;
+            }
+          }
+
+          checkpoint.totalIngested += savedInPage;
+          console.log(`    ✅ Saved ${savedInPage}/${comicBatch.length} titles (Total Ingested: ${checkpoint.totalIngested})`);
+
+          // Update Checkpoint
+          checkpoint.partitionIndex = pIdx;
+          checkpoint.currentYear = year;
+          checkpoint.currentPage = page + 1;
+          checkpoint.lastUpdated = new Date().toISOString();
+          saveCheckpoint(checkpoint);
+
+          const hasNext = json.data?.Page?.pageInfo?.hasNextPage;
+          if (!hasNext) {
+            console.log(`  No more pages for Year ${year}.`);
+            break;
+          }
+
+          // AniList 30 req/min rate limit compliance: 2.2s sleep
+          await sleep(2200);
+        } catch (err: any) {
+          console.error(`  Error processing Year ${year} Page ${page}:`, err?.message || err);
+          await sleep(4000);
+        }
       }
 
-      console.log(`\n📄 Fetching Page ${page}/${cat.maxPages}... [Progress: ${checkpoint.totalIngested}/${TARGET_TOTAL} - ${((checkpoint.totalIngested / TARGET_TOTAL) * 100).toFixed(1)}%]`);
-
-      try {
-        const json = await fetchWithRetry(BATCH_QUERY, {
-          page,
-          perPage: PER_PAGE,
-          countryOfOrigin: cat.country,
-          sort: cat.sort,
-        });
-
-        const mediaList = json.data?.Page?.media || [];
-        if (mediaList.length === 0) {
-          console.log(`No more media in this category. Moving to next.`);
-          break;
-        }
-
-        const comicBatch: any[] = [];
-
-        for (const item of mediaList) {
-          const titleRomaji = item.title?.romaji || 'Unknown Title';
-          const titleEnglish = item.title?.english || null;
-          const slug = slugify(titleEnglish || titleRomaji) || `comic-${item.id}`;
-
-          const type =
-            item.countryOfOrigin === 'KR'
-              ? 'MANHWA'
-              : item.countryOfOrigin === 'CN'
-              ? 'MANHUA'
-              : 'MANGA';
-
-          const topTags =
-            item.tags
-              ?.filter((t: any) => t.rank >= 40)
-              ?.slice(0, 8)
-              ?.map((t: any) => t.name) || [];
-
-          const comicRecord = {
-            source_id: item.id,
-            id_mal: item.idMal || null,
-            slug,
-            title_romaji: titleRomaji,
-            title_english: titleEnglish,
-            title_native: item.title?.native || null,
-            synonyms: item.synonyms || [],
-            type,
-            format: item.format === 'ONE_SHOT' ? ('ONE_SHOT' as const) : ('MANGA' as const),
-            status: item.status === 'FINISHED' ? ('FINISHED' as const) : ('RELEASING' as const),
-            synopsis: item.description?.replace(/<[^>]*>?/gm, '') || null,
-            genres: item.genres || [],
-            tags: topTags,
-            total_chapters: item.chapters || null,
-            release_year: item.startDate?.year || null,
-            average_score: item.averageScore || null,
-            popularity: item.popularity || null,
-            cover_image_url: item.coverImage?.extraLarge || item.coverImage?.large || null,
-            banner_image_url: item.bannerImage || null,
-            country_of_origin: item.countryOfOrigin || 'JP',
-            site_url: item.siteUrl || `https://anilist.co/manga/${item.id}`,
-          };
-
-          comicBatch.push(comicRecord);
-        }
-
-        // Bulk Upsert Comics (50 at a time)
-        const { data: insertedList, error: upsertErr } = await (supabase.from('comics') as any)
-          .upsert(comicBatch, { onConflict: 'source_id' })
-          .select('id, source_id, title_english, title_romaji, type, genres, tags, synopsis');
-
-        if (upsertErr) {
-          console.error(`[Supabase Upsert Error]:`, upsertErr.message);
-        } else if (insertedList) {
-          checkpoint.totalIngested += comicBatch.length;
-          console.log(`  ✅ Successfully saved ${comicBatch.length} titles in batch (Total: ${checkpoint.totalIngested})`);
-        }
-
-        // Update Checkpoint
-        checkpoint.currentPage = page + 1;
-        checkpoint.lastUpdated = new Date().toISOString();
-        saveCheckpoint(checkpoint);
-
-        // Safe rate limit cooldown: ~1.2s between pages (AniList allows 90/min)
-        await sleep(1200);
-      } catch (err: any) {
-        console.error(`Error processing page ${page}:`, err.message);
-        await sleep(3000);
-      }
+      // Reset page for next year
+      checkpoint.currentYear = year + 1;
+      checkpoint.currentPage = 1;
+      saveCheckpoint(checkpoint);
     }
 
-    // Advance category
-    checkpoint.categoryIndex = cIdx + 1;
+    // Advance partition
+    checkpoint.partitionIndex = pIdx + 1;
+    if (PARTITIONS[pIdx + 1]) {
+      checkpoint.currentYear = PARTITIONS[pIdx + 1].startYear;
+    }
     checkpoint.currentPage = 1;
     saveCheckpoint(checkpoint);
   }
 
-  console.log(`\n🎉 All categories finished! Total Ingested: ${checkpoint.totalIngested}`);
+  console.log(`\n🎉 Year-partitioned ingestion finished! Total titles processed: ${checkpoint.totalIngested}`);
 }
 
-start10kIngestion().catch(console.error);
+startYearPartitionedIngestion().catch(console.error);
