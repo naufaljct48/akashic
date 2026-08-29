@@ -78,11 +78,18 @@ const PARTITIONS: CountryPartition[] = [
   { country: 'CN', label: 'Chinese Manhua (2005-2026)', startYear: 2005, endYear: 2026 },
 ];
 
+export interface FailedPage {
+  partition: 'JP' | 'KR' | 'CN';
+  year: number;
+  page: number;
+}
+
 interface Checkpoint {
   partitionIndex: number;
   currentYear: number;
   currentPage: number;
   totalIngested: number;
+  failedPages: FailedPage[];
   lastUpdated: string;
 }
 
@@ -92,7 +99,10 @@ function loadCheckpoint(): Checkpoint {
       const raw = fs.readFileSync(CHECKPOINT_FILE, 'utf-8');
       const cp = JSON.parse(raw);
       if (typeof cp.partitionIndex === 'number' && typeof cp.currentYear === 'number') {
-        return cp;
+        return {
+          ...cp,
+          failedPages: Array.isArray(cp.failedPages) ? cp.failedPages : [],
+        };
       }
     }
   } catch (err) {
@@ -103,6 +113,7 @@ function loadCheckpoint(): Checkpoint {
     currentYear: PARTITIONS[0].startYear,
     currentPage: 1,
     totalIngested: 0,
+    failedPages: [],
     lastUpdated: new Date().toISOString(),
   };
 }
@@ -158,6 +169,98 @@ async function fetchWithRetry(query: string, variables: any, maxRetries = 5): Pr
   }
 }
 
+export async function processPage(
+  country: 'JP' | 'KR' | 'CN',
+  year: number,
+  page: number
+): Promise<{ count: number; hasNext: boolean; totalInPage: number }> {
+  const startDate_greater = year * 10000;
+  const startDate_lesser = (year + 1) * 10000;
+
+  const json = await fetchWithRetry(BATCH_QUERY, {
+    page,
+    perPage: PER_PAGE,
+    countryOfOrigin: country,
+    startDate_greater,
+    startDate_lesser,
+    sort: ['POPULARITY_DESC', 'SCORE_DESC'],
+  });
+
+  const mediaList = json.data?.Page?.media || [];
+  if (mediaList.length === 0) {
+    return { count: 0, hasNext: false, totalInPage: 0 };
+  }
+
+  const comicBatch: any[] = [];
+
+  for (const item of mediaList) {
+    const titleRomaji = item.title?.romaji || 'Unknown Title';
+    const titleEnglish = item.title?.english || null;
+    const baseSlug = slugify(titleEnglish || titleRomaji) || `comic-${item.id}`;
+
+    const type =
+      item.countryOfOrigin === 'KR'
+        ? 'MANHWA'
+        : item.countryOfOrigin === 'CN'
+        ? 'MANHUA'
+        : 'MANGA';
+
+    const topTags =
+      item.tags
+        ?.filter((t: any) => t.rank >= 40)
+        ?.slice(0, 8)
+        ?.map((t: any) => t.name) || [];
+
+    const comicRecord = {
+      source_id: item.id,
+      id_mal: item.idMal || null,
+      slug: baseSlug,
+      title_romaji: titleRomaji,
+      title_english: titleEnglish,
+      title_native: item.title?.native || null,
+      synonyms: item.synonyms || [],
+      type,
+      format: item.format === 'ONE_SHOT' ? ('ONE_SHOT' as const) : ('MANGA' as const),
+      status: item.status === 'FINISHED' ? ('FINISHED' as const) : ('RELEASING' as const),
+      synopsis: item.description?.replace(/<[^>]*>?/gm, '') || null,
+      genres: item.genres || [],
+      tags: topTags,
+      total_chapters: item.chapters || null,
+      release_year: item.startDate?.year || year,
+      average_score: item.averageScore || null,
+      popularity: item.popularity || null,
+      cover_image_url: item.coverImage?.extraLarge || item.coverImage?.large || null,
+      banner_image_url: item.bannerImage || null,
+      country_of_origin: item.countryOfOrigin || country,
+      site_url: item.siteUrl || `https://anilist.co/manga/${item.id}`,
+    };
+
+    comicBatch.push(comicRecord);
+  }
+
+  let savedInPage = 0;
+  for (const record of comicBatch) {
+    let { error: err } = await (supabase.from('comics') as any)
+      .upsert(record, { onConflict: 'source_id' });
+
+    if (err && err.message?.includes('comics_slug_key')) {
+      record.slug = `${record.slug}-${record.source_id}`;
+      const retry = await (supabase.from('comics') as any)
+        .upsert(record, { onConflict: 'source_id' });
+      err = retry.error;
+    }
+
+    if (err) {
+      console.error(`    ❌ Error saving ${record.title_romaji} (${record.source_id}):`, err.message);
+    } else {
+      savedInPage++;
+    }
+  }
+
+  const hasNext = Boolean(json.data?.Page?.pageInfo?.hasNextPage);
+  return { count: savedInPage, hasNext, totalInPage: comicBatch.length };
+}
+
 async function startYearPartitionedIngestion() {
   console.log(`\n======================================================`);
   console.log(`🚀 AKASHIC DEX: YEAR-PARTITIONED INGESTION PIPELINE`);
@@ -166,7 +269,7 @@ async function startYearPartitionedIngestion() {
 
   let checkpoint = loadCheckpoint();
   console.log(
-    `Resuming from Partition: ${checkpoint.partitionIndex} (${PARTITIONS[checkpoint.partitionIndex]?.label ?? 'Done'}), Year: ${checkpoint.currentYear}, Page: ${checkpoint.currentPage}, Total Ingested: ${checkpoint.totalIngested}/${TARGET_TOTAL}`
+    `Resuming from Partition: ${checkpoint.partitionIndex} (${PARTITIONS[checkpoint.partitionIndex]?.label ?? 'Done'}), Year: ${checkpoint.currentYear}, Page: ${checkpoint.currentPage}, Total Ingested: ${checkpoint.totalIngested}/${TARGET_TOTAL}, Unresolved Failed Pages: ${checkpoint.failedPages.length}`
   );
 
   for (let pIdx = checkpoint.partitionIndex; pIdx < PARTITIONS.length; pIdx++) {
@@ -185,101 +288,22 @@ async function startYearPartitionedIngestion() {
 
       for (let page = startPage; page <= MAX_PAGES_PER_YEAR; page++) {
         if (checkpoint.totalIngested >= TARGET_TOTAL) {
-          console.log(`\n🎯 Reached target ${TARGET_TOTAL} titles! Pipeline complete.`);
-          return;
+          console.log(`\n🎯 Reached target ${TARGET_TOTAL} titles! Pipeline moving to retry & completion.`);
+          break;
         }
 
         console.log(`  📄 Fetching Year ${year} Page ${page}/${MAX_PAGES_PER_YEAR}... [Total: ${checkpoint.totalIngested}]`);
 
         try {
-          const startDate_greater = year * 10000;
-          const startDate_lesser = (year + 1) * 10000;
+          const result = await processPage(part.country, year, page);
 
-          const json = await fetchWithRetry(BATCH_QUERY, {
-            page,
-            perPage: PER_PAGE,
-            countryOfOrigin: part.country,
-            startDate_greater,
-            startDate_lesser,
-            sort: ['POPULARITY_DESC', 'SCORE_DESC'],
-          });
-
-          const mediaList = json.data?.Page?.media || [];
-          if (mediaList.length === 0) {
+          if (result.totalInPage === 0) {
             console.log(`  End of results for Year ${year}.`);
             break;
           }
 
-          const comicBatch: any[] = [];
-
-          for (const item of mediaList) {
-            const titleRomaji = item.title?.romaji || 'Unknown Title';
-            const titleEnglish = item.title?.english || null;
-            const baseSlug = slugify(titleEnglish || titleRomaji) || `comic-${item.id}`;
-
-            const type =
-              item.countryOfOrigin === 'KR'
-                ? 'MANHWA'
-                : item.countryOfOrigin === 'CN'
-                ? 'MANHUA'
-                : 'MANGA';
-
-            const topTags =
-              item.tags
-                ?.filter((t: any) => t.rank >= 40)
-                ?.slice(0, 8)
-                ?.map((t: any) => t.name) || [];
-
-            const comicRecord = {
-              source_id: item.id,
-              id_mal: item.idMal || null,
-              slug: baseSlug,
-              title_romaji: titleRomaji,
-              title_english: titleEnglish,
-              title_native: item.title?.native || null,
-              synonyms: item.synonyms || [],
-              type,
-              format: item.format === 'ONE_SHOT' ? ('ONE_SHOT' as const) : ('MANGA' as const),
-              status: item.status === 'FINISHED' ? ('FINISHED' as const) : ('RELEASING' as const),
-              synopsis: item.description?.replace(/<[^>]*>?/gm, '') || null,
-              genres: item.genres || [],
-              tags: topTags,
-              total_chapters: item.chapters || null,
-              release_year: item.startDate?.year || year,
-              average_score: item.averageScore || null,
-              popularity: item.popularity || null,
-              cover_image_url: item.coverImage?.extraLarge || item.coverImage?.large || null,
-              banner_image_url: item.bannerImage || null,
-              country_of_origin: item.countryOfOrigin || part.country,
-              site_url: item.siteUrl || `https://anilist.co/manga/${item.id}`,
-            };
-
-            comicBatch.push(comicRecord);
-          }
-
-          // Upsert records one by one or in batch, with collision handling
-          let savedInPage = 0;
-          for (const record of comicBatch) {
-            let { error: err } = await (supabase.from('comics') as any)
-              .upsert(record, { onConflict: 'source_id' });
-
-            if (err && err.message?.includes('comics_slug_key')) {
-              // Slug collision with another source_id -> disambiguate slug
-              record.slug = `${record.slug}-${record.source_id}`;
-              const retry = await (supabase.from('comics') as any)
-                .upsert(record, { onConflict: 'source_id' });
-              err = retry.error;
-            }
-
-            if (err) {
-              console.error(`    ❌ Error saving ${record.title_romaji} (${record.source_id}):`, err.message);
-            } else {
-              savedInPage++;
-            }
-          }
-
-          checkpoint.totalIngested += savedInPage;
-          console.log(`    ✅ Saved ${savedInPage}/${comicBatch.length} titles (Total Ingested: ${checkpoint.totalIngested})`);
+          checkpoint.totalIngested += result.count;
+          console.log(`    ✅ Saved ${result.count}/${result.totalInPage} titles (Total Ingested: ${checkpoint.totalIngested})`);
 
           // Update Checkpoint
           checkpoint.partitionIndex = pIdx;
@@ -288,8 +312,7 @@ async function startYearPartitionedIngestion() {
           checkpoint.lastUpdated = new Date().toISOString();
           saveCheckpoint(checkpoint);
 
-          const hasNext = json.data?.Page?.pageInfo?.hasNextPage;
-          if (!hasNext) {
+          if (!result.hasNext) {
             console.log(`  No more pages for Year ${year}.`);
             break;
           }
@@ -297,7 +320,16 @@ async function startYearPartitionedIngestion() {
           // AniList 30 req/min rate limit compliance: 2.2s sleep
           await sleep(2200);
         } catch (err: any) {
-          console.error(`  Error processing Year ${year} Page ${page}:`, err?.message || err);
+          console.error(`  ❌ Error processing Year ${year} Page ${page}:`, err?.message || err);
+
+          const alreadyRecorded = checkpoint.failedPages.some(
+            (fp) => fp.partition === part.country && fp.year === year && fp.page === page
+          );
+          if (!alreadyRecorded) {
+            checkpoint.failedPages.push({ partition: part.country, year, page });
+            saveCheckpoint(checkpoint);
+          }
+
           await sleep(4000);
         }
       }
@@ -317,7 +349,50 @@ async function startYearPartitionedIngestion() {
     saveCheckpoint(checkpoint);
   }
 
-  console.log(`\n🎉 Year-partitioned ingestion finished! Total titles processed: ${checkpoint.totalIngested}`);
+  // ---- Retry Failed Pages at the end of pipeline ----
+  if (checkpoint.failedPages.length > 0) {
+    console.log(`\n======================================================`);
+    console.log(`🔁 Retrying ${checkpoint.failedPages.length} failed pages...`);
+    console.log(`======================================================`);
+
+    const stillFailed: FailedPage[] = [];
+    for (const fp of checkpoint.failedPages) {
+      console.log(`  🔁 Retrying ${fp.partition} Year ${fp.year} Page ${fp.page}...`);
+      try {
+        const result = await processPage(fp.partition, fp.year, fp.page);
+        checkpoint.totalIngested += result.count;
+        console.log(`    ✅ Recovered ${result.count}/${result.totalInPage} titles from retry.`);
+        await sleep(2200);
+      } catch (err: any) {
+        console.error(`    ❌ Retry still failed for ${fp.partition} Year ${fp.year} Page ${fp.page}:`, err?.message || err);
+        stillFailed.push(fp);
+        await sleep(4000);
+      }
+    }
+
+    checkpoint.failedPages = stillFailed;
+    checkpoint.lastUpdated = new Date().toISOString();
+    saveCheckpoint(checkpoint);
+  }
+
+  console.log(`\n======================================================`);
+  console.log(`📊 Final Ingestion Summary:`);
+  console.log(`   - Total Titles Processed: ${checkpoint.totalIngested}`);
+  console.log(`   - Unresolved Failed Pages: ${checkpoint.failedPages.length}`);
+  console.log(`======================================================`);
+
+  if (checkpoint.failedPages.length > 0) {
+    console.error(`❌ Ingestion pipeline finished with ${checkpoint.failedPages.length} unresolved failed pages.`);
+    process.exit(1);
+  }
+
+  console.log(`\n🎉 All partitions finished successfully with 0 failed pages!`);
 }
 
-startYearPartitionedIngestion().catch(console.error);
+// Allow running as standalone script
+if (import.meta.main || process.argv[1]?.endsWith('ingest-10k.ts')) {
+  startYearPartitionedIngestion().catch((err) => {
+    console.error('Fatal ingestion error:', err);
+    process.exit(1);
+  });
+}
