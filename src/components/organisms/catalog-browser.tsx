@@ -7,6 +7,7 @@ import { POPULAR_GENRES, POPULAR_TROPES, resolveTropeFilters } from '@/core/cons
 import { getComics, findComicByTitle, PAGE_SIZE } from '@/services/comic.service';
 import type { BookmarkMap, ReadingStatus } from '@/core/types/bookmark';
 import type { ComicSearchResult, ComicType, ComicStatus } from '@/core/types/comic';
+import { useComicDeepLink } from '@/lib/hooks/use-comic-deep-link';
 import { cn } from '@/lib/utils/cn';
 
 interface CatalogBrowserProps {
@@ -29,6 +30,11 @@ export function CatalogBrowser({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+
+  const { pendingSlug: deepLinkSlug } = useComicDeepLink(selectedComic, (found) => {
+    setComics((prev) => [found, ...prev.filter((c) => c.id !== found.id)]);
+    setSelectedComic(found);
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<ComicType | 'ALL'>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<ComicStatus | 'ALL'>('ALL');
@@ -83,8 +89,11 @@ export function CatalogBrowser({
         pageRef.current = page;
         setComics((prev) => (page === 1 ? data : [...prev, ...data]));
 
+        // Not while a ?c= link is still resolving — the first card of the
+        // default listing is not what the link was about.
         if (
           page === 1 &&
+          !deepLinkSlug &&
           data.length > 0 &&
           typeof window !== 'undefined' &&
           window.innerWidth >= 1024

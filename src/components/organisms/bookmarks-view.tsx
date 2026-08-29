@@ -13,6 +13,7 @@ import {
   type ReadingStatus,
 } from '@/core/types/bookmark';
 import type { ComicSearchResult } from '@/core/types/comic';
+import { useComicDeepLink } from '@/lib/hooks/use-comic-deep-link';
 import { cn } from '@/lib/utils/cn';
 
 interface BookmarksViewProps {
@@ -44,6 +45,11 @@ export function BookmarksView({
   const bookmarkedIds = Object.keys(bookmarks);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
+
+  // A bookmarks link can point at a title the recipient has not saved, so the
+  // resolved comic is shown in the inspector without being injected into the
+  // grid — this view is the user's own library, not a search result.
+  const { pendingSlug: deepLinkSlug } = useComicDeepLink(selectedComic, setSelectedComic);
 
   const handleImportFile = async (file: File | undefined) => {
     if (!file) return;
@@ -102,7 +108,7 @@ export function BookmarksView({
       }
 
       setBookmarkedComics(rows);
-      if (rows.length > 0 && !selectedComic && typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      if (rows.length > 0 && !selectedComic && !deepLinkSlug && typeof window !== 'undefined' && window.innerWidth >= 1024) {
         setSelectedComic(rows[0]);
       }
       setIsLoading(false);

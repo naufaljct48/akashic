@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { I18nProvider } from '@/core/i18n/context';
 import { ThemeProvider } from '@/core/theme/theme-context';
 import { WorkspaceHeader, type WorkspaceTab } from '@/components/templates/workspace-header';
@@ -35,7 +35,27 @@ function TabLoadingFallback() {
 }
 
 function AppContent() {
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>('discovery');
+  // Which tab is open is part of the address, or a shared link always lands on
+  // Discovery no matter what it pointed at. Read once; `discovery` is the
+  // default so it stays out of the URL.
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>(() => {
+    if (typeof window === 'undefined') return 'discovery';
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    return tab === 'catalog' || tab === 'bookmarks' ? tab : 'discovery';
+  });
+
+  // Only the tab is written here. Clearing ?c= on a switch cannot work from
+  // this level: React mounts the incoming view — which reads ?c= during render
+  // — before the parent effect runs, so the param is always read before it
+  // could be cleared, and the new view's own writer puts it straight back.
+  // Rather than fight that ordering, the open title deliberately follows you
+  // across tabs.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (activeTab === 'discovery') url.searchParams.delete('tab');
+    else url.searchParams.set('tab', activeTab);
+    window.history.replaceState(null, '', url);
+  }, [activeTab]);
   const [spotlightSelectedComic, setSpotlightSelectedComic] = useState<ComicSearchResult | null>(null);
   const [bookmarks, setBookmarks] = useState<BookmarkMap>(() => loadStoredBookmarks());
 

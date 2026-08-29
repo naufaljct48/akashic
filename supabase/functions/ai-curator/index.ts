@@ -218,15 +218,16 @@ serve(async (req) => {
     // Three providers, tried in order. An attempt is (base, key, model) rather
     // than a bare model id because the chain crosses provider boundaries — the
     // whole point is surviving one of them being down, which is not hypothetical:
-    // b.ai has answered 503 for this entire session.
+    // b.ai spent a whole day answering 503 activity_cost_limit_reached.
+    //
+    // Ordered by measured latency on the real 24-candidate workload, fastest
+    // first, because every position is a fully capable curator and the user is
+    // waiting: minimax-m3 ~5s, mistral-small ~2-3s, minimax-m2.7 ~20s,
+    // deepseek ~24s. Putting the slowest first cost 20 seconds on the happy
+    // path for no gain in answer quality.
     const csv = (v: string) => v.split(',').map((m) => m.trim()).filter(Boolean);
 
     const providers = [
-      {
-        key: await getSecret('AI_API_KEY'),
-        base: await getSecret('AI_BASE_URL', 'https://api.b.ai/v1'),
-        models: csv(await getSecret('AI_MODEL', 'deepseek-v4-flash')),
-      },
       {
         key: await getSecret('OPENROUTER_API_KEY'),
         base: await getSecret('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'),
@@ -241,6 +242,11 @@ serve(async (req) => {
         key: await getSecret('MISTRAL_API_KEY'),
         base: await getSecret('MISTRAL_BASE_URL', 'https://api.mistral.ai/v1'),
         models: csv(await getSecret('MISTRAL_MODELS', 'mistral-small-2603')),
+      },
+      {
+        key: await getSecret('AI_API_KEY'),
+        base: await getSecret('AI_BASE_URL', 'https://api.b.ai/v1'),
+        models: csv(await getSecret('AI_MODEL', 'deepseek-v4-flash')),
       },
     ];
 
@@ -265,8 +271,14 @@ serve(async (req) => {
     const deadline = Date.now() + 40_000;
     let lastFailure = 'no attempt made';
 
-    for (const attempt of attempts) {
-      const budget = Math.min(25_000, deadline - Date.now());
+    for (const [i, attempt] of attempts.entries()) {
+      // The per-attempt cap exists to stop one slow provider from starving the
+      // ones behind it. The last attempt has nothing behind it, so it gets the
+      // whole remaining budget — without this the slowest model in the chain,
+      // which is exactly where a slow model belongs, is capped just below the
+      // 24s it actually needs and times out every single time.
+      const remaining = deadline - Date.now();
+      const budget = i === attempts.length - 1 ? remaining : Math.min(25_000, remaining);
       if (budget < 2_000) {
         lastFailure = `${lastFailure}; out of time before ${attempt.model}`;
         break;

@@ -8,7 +8,6 @@ import { useI18n } from '@/core/i18n/context';
 import {
   searchComicsSemantic,
   getComics,
-  getComicBySlug,
   getRandomGemComic,
   findComicByTitle,
   PAGE_SIZE,
@@ -26,6 +25,7 @@ import {
 } from '@/services/rate-limit.service';
 import type { BookmarkMap, ReadingStatus } from '@/core/types/bookmark';
 import type { ComicSearchResult, ComicType } from '@/core/types/comic';
+import { useComicDeepLink } from '@/lib/hooks/use-comic-deep-link';
 import { cn } from '@/lib/utils/cn';
 
 export type FeedMode = 'curated' | 'trending' | 'recent_updates' | 'new_releases';
@@ -48,7 +48,14 @@ export function DiscoveryWorkspace({
   initialPrompt,
 }: DiscoveryWorkspaceProps) {
   const { locale, t } = useI18n();
-  const [query, setQuery] = useState(initialPrompt || '');
+  // ?q=<query> replays an AI search from a shared link. Read once, lazily: the
+  // writer effect below would otherwise feed the hook its own output.
+  const [urlQuery] = useState(() =>
+    typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('q')
+  );
+  const seedPrompt = initialPrompt || urlQuery || '';
+
+  const [query, setQuery] = useState(seedPrompt);
   const [feedMode, setFeedMode] = useState<FeedMode>('curated');
   const [trendingWindow, setTrendingWindow] = useState<TrendingWindow>('today');
   const [activeSearchIntent, setActiveSearchIntent] = useState<string | null>(null);
@@ -62,14 +69,10 @@ export function DiscoveryWorkspace({
   const [hasMore, setHasMore] = useState(true);
   const [rateLimit, setRateLimit] = useState(getRateLimitStatus());
 
-  // Deep link: ?c=<slug>. Read once, lazily, so the writer effect below cannot
-  // feed its own output back in. There is no router in this app and this does
-  // not need one — a discovery engine whose finds cannot be shared is throwing
-  // away its cheapest growth loop, and that costs one query param.
-  const [deepLinkSlug] = useState(() =>
-    typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('c')
-  );
-  const urlSyncReady = useRef(false);
+  const { pendingSlug: deepLinkSlug } = useComicDeepLink(selectedComic, (found) => {
+    setResults((prev) => [found, ...prev.filter((p) => p.id !== found.id)]);
+    setSelectedComic(found);
+  });
 
   // Paging state. Refs, not state, so loadMore never fires against a stale page.
   const pageRef = useRef(1);
@@ -192,8 +195,8 @@ export function DiscoveryWorkspace({
 
   // Initial load or execute initialPrompt
   useEffect(() => {
-    if (initialPrompt && initialPrompt.trim()) {
-      handleSearch(initialPrompt);
+    if (seedPrompt.trim()) {
+      handleSearch(seedPrompt);
       return;
     }
     // A spotlight pick arrives with this component's very first render; don't
@@ -205,7 +208,7 @@ export function DiscoveryWorkspace({
       1,
       !externalSelectedComic && !deepLinkSlug
     );
-  }, [initialPrompt]);
+  }, [seedPrompt]);
 
   // Handle Semantic Discovery Query (AI Powered)
   const handleSearch = async (searchPrompt: string) => {
@@ -222,7 +225,11 @@ export function DiscoveryWorkspace({
 
     setIsLoading(true);
     setActiveSearchIntent(trimmed);
-    requestIdRef.current++;
+    // Claim this request. loadFeedData already guards on this ref; the search
+    // path incremented it and never checked it, so whichever search RESOLVED
+    // last won — a slow first query could wipe the results of the one typed
+    // after it, and an errored duplicate could blank a good answer outright.
+    const requestId = ++requestIdRef.current;
     pageRef.current = 1;
     setHasMore(false);
 
@@ -234,6 +241,8 @@ export function DiscoveryWorkspace({
         locale
       );
 
+      if (requestId !== requestIdRef.current) return;
+
       setResults(searchData);
       setAiSummary(summary || null);
 
@@ -243,7 +252,7 @@ export function DiscoveryWorkspace({
     } catch (err) {
       console.error('Search error:', err);
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) setIsLoading(false);
     }
   };
 
@@ -274,41 +283,18 @@ export function DiscoveryWorkspace({
     }
   };
 
-  // Resolve the deep link. getComicBySlug covers the catalog; findComicByTitle
-  // falls through to AniList, which is how a link to a live-only title still
-  // opens for the person it was sent to.
+  // The search itself is the shareable thing here, not just the title it landed
+  // on. Held back until the seeded search registers, so copying the URL while it
+  // is still running does not hand out a link with the query stripped out.
+  const searchSyncReady = useRef(!seedPrompt);
   useEffect(() => {
-    if (!deepLinkSlug) {
-      urlSyncReady.current = true;
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      const found =
-        (await getComicBySlug(deepLinkSlug)) ??
-        (await findComicByTitle(deepLinkSlug.replace(/-/g, ' ')));
-      if (cancelled) return;
-      if (found) {
-        const hit = found as ComicSearchResult;
-        setResults((prev) => [hit, ...prev.filter((p) => p.id !== hit.id)]);
-        setSelectedComic(hit);
-      }
-      urlSyncReady.current = true;
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [deepLinkSlug]);
-
-  // replaceState, not pushState: opening cards is browsing, not navigation, and
-  // filling the back stack with inspector opens makes Back useless.
-  useEffect(() => {
-    if (!urlSyncReady.current) return;
+    if (activeSearchIntent) searchSyncReady.current = true;
+    if (!searchSyncReady.current) return;
     const url = new URL(window.location.href);
-    if (selectedComic?.slug) url.searchParams.set('c', selectedComic.slug);
-    else url.searchParams.delete('c');
+    if (activeSearchIntent) url.searchParams.set('q', activeSearchIntent);
+    else url.searchParams.delete('q');
     window.history.replaceState(null, '', url);
-  }, [selectedComic]);
+  }, [activeSearchIntent]);
 
   const handleFeedModeChange = async (mode: FeedMode) => {
     setFeedMode(mode);
