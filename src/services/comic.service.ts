@@ -350,8 +350,15 @@ async function retrieveSemanticCandidates(
   // missing, so "pool is small" never becomes true and the named title is never
   // fetched. Reuse the extracted name — a query with no name in it is a trope
   // query, and does not deserve the extra round trip.
+  //
+  // Hinted tags are the second half of that gate. Name extraction is a
+  // heuristic over a sentence, so a long trope query always leaves *some*
+  // leftover word behind ("underrated", "realistic") — and this probe's hits
+  // are ranked to the head of the pool, so one bad guess buries every correct
+  // tag match. If the query named real tropes, probes 3/4 already have the
+  // candidates and a speculative title lookup can only add noise.
   const liveTitleIds = new Set<string>();
-  if (titleProbeHits === 0 && nameTerms.length > 0) {
+  if (titleProbeHits === 0 && nameTerms.length > 0 && hintedTags.length === 0) {
     const live = (await searchLiveAniList(nameTerms[0], 8)) as Comic[];
     live.forEach((c) => liveTitleIds.add(c.id));
     addAll(live);

@@ -49,7 +49,9 @@ export async function analyzeAndRankWithDeepSeek(
     const controller = new AbortController();
     // Bigger candidate pool + a much longer system prompt means more thinking
     // time upstream; 16s was clipping valid responses into the fallback path.
-    const timeoutId = setTimeout(() => controller.abort(), 25000);
+    // A 24-candidate pool measured at ~30s on the reasoning model, so 25s was
+    // still aborting every full-size query — the red request in devtools.
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
 
     // Call Secure Supabase Edge Function (Server-side Secret Key)
     const res = await fetch(EDGE_FUNCTION_URL, {

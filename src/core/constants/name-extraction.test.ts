@@ -124,4 +124,18 @@ if (meta.length !== 0) fail('meta words are not names', `got [${meta.join(', ')}
 const many = characterSearchTerms('Lloyd Frontera Chung Myung Sung Jinwoo Kim Dokja');
 if (many.length > 5) fail('term cap', `expected <= 5 terms, got ${many.length}`);
 
+// Long English trope sentences leave no name behind. "Give me 3 realistic..."
+// used to yield "me 3", which the live-title probe searched on AniList and got
+// back a pile of BL one-shots with a 3 in the title.
+for (const sentence of [
+  'Give me 3 realistic kingdom-building manhwa/manga focused on economics and politics that are underrated.',
+  'give me 5 dark psychological manhwa with a cunning lead',
+]) {
+  for (const term of extractNameCandidates(sentence)) {
+    if (/\d/.test(term) || term.split(/\s+/).some((w) => w.length < 3)) {
+      fail('no digits or stub words in names', `"${sentence}" produced "${term}"`);
+    }
+  }
+}
+
 console.log('name-extraction: all assertions passed');

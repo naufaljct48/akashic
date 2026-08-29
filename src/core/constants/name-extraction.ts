@@ -223,8 +223,15 @@ export function extractNameCandidates(raw: string, limit = 3): string[] {
   // burns a lookup slot, and the marker it contains goes unrecognised.
   const stem = (t: string) => (t.length > 5 && t.endsWith('nya') ? t.slice(0, -3) : t);
   const isMarker = (t?: string) => Boolean(t) && (NAME_MARKERS.has(t!) || NAME_MARKERS.has(stem(t!)));
+  // A name is never a digit and never two letters. Without this gate the
+  // adjacent-pair branch below turns "Give me 3 realistic..." into the name
+  // "me 3", and probe 5 then does a live AniList *title* search for it — which
+  // is how a kingdom-building query came back full of BL one-shots with a 3 in
+  // the title.
   const isContent = (t?: string) =>
     Boolean(t) &&
+    t!.length >= 3 &&
+    !/\d/.test(t!) &&
     !NAME_NOISE.has(t!) &&
     !NAME_NOISE.has(stem(t!)) &&
     !isMarker(t) &&

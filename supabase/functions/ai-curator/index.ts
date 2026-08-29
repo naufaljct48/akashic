@@ -238,7 +238,11 @@ serve(async (req) => {
           },
         ],
         response_format: { type: 'json_object' },
-        max_tokens: 3000,
+        // Reasoning models bill their thinking against max_tokens. A 24-candidate
+        // pool burned all 3000 on reasoning_content and returned an empty
+        // `content`, so every full-size query silently fell back to the
+        // deterministic matcher. Leave headroom for the answer itself.
+        max_tokens: 8000,
         temperature: 0.3,
       }),
     });
