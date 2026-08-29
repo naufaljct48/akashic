@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Sparkles, Flame, Zap, Calendar } from 'lucide-react';
+import { Newspaper, Flame, Zap, Calendar } from 'lucide-react';
 import { CommandSearchBar } from '@/components/organisms/command-search-bar';
-import { AboutAkashicBanner } from '@/components/molecules/about-akashic-banner';
+import { FrontPageMasthead } from '@/components/molecules/front-page-masthead';
+import { Folio } from '@/components/molecules/folio';
 import { ComicGridView } from '@/components/organisms/comic-grid-view';
 import { ComicInspector } from '@/components/organisms/comic-inspector';
 import { useI18n } from '@/core/i18n/context';
@@ -29,6 +30,17 @@ import { useComicDeepLink } from '@/lib/hooks/use-comic-deep-link';
 import { cn } from '@/lib/utils/cn';
 
 export type FeedMode = 'curated' | 'trending' | 'recent_updates' | 'new_releases';
+
+/**
+ * One spot color per department, set on the view root so every rule, tab, and
+ * numeral inside it inherits the same ink. Switching feeds re-inks the page.
+ */
+const FEED_INK: Record<FeedMode, string> = {
+  curated: 'var(--ink-magenta)',
+  trending: 'var(--ink-vermilion)',
+  recent_updates: 'var(--ink-cyan)',
+  new_releases: 'var(--ink-green)',
+};
 
 interface DiscoveryWorkspaceProps {
   onToggleBookmark: (id: string) => void;
@@ -350,14 +362,21 @@ export function DiscoveryWorkspace({
     }
   };
 
-  return (
-    <div className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-56px)] overflow-hidden max-w-[1600px] w-full mx-auto">
-      {/* Main Left/Center Content Area */}
-      <main className="flex-1 flex flex-col h-full overflow-y-auto px-3.5 sm:px-6 py-4 sm:py-5 gap-4 sm:gap-5 pb-24 lg:pb-8">
-        {/* What is Akashic Dex Explanatory Banner */}
-        <AboutAkashicBanner />
+  const feeds: { id: FeedMode; label: string; icon: typeof Flame }[] = [
+    { id: 'curated', label: t.feeds.curated, icon: Newspaper },
+    { id: 'trending', label: t.feeds.trending, icon: Flame },
+    { id: 'recent_updates', label: t.feeds.recentUpdates, icon: Zap },
+    { id: 'new_releases', label: t.feeds.newReleases, icon: Calendar },
+  ];
 
-        {/* Command Search Bar */}
+  return (
+    <div
+      className="flex flex-col lg:flex-row h-[var(--view-h)] overflow-hidden max-w-[1600px] w-full mx-auto"
+      style={{ ['--spot' as string]: activeSearchIntent ? FEED_INK.curated : FEED_INK[feedMode] }}
+    >
+      <main className="flex-1 flex flex-col h-full overflow-y-auto px-3.5 sm:px-6 py-5 gap-5 pb-28 lg:pb-10">
+        <FrontPageMasthead />
+
         <CommandSearchBar
           query={query}
           onQueryChange={setQuery}
@@ -371,70 +390,39 @@ export function DiscoveryWorkspace({
           isRollingGacha={isRollingGacha}
         />
 
-        {/* Live Feed Mode Selector & Live Status Banner */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-1 border-b border-[var(--border-subtle)]">
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] font-mono-data text-xs overflow-x-auto max-w-full">
-            <button
-              type="button"
-              onClick={() => handleFeedModeChange('curated')}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap',
-                feedMode === 'curated' && !activeSearchIntent
-                  ? 'bg-[var(--bg-surface-raised)] text-[var(--text-primary)] font-semibold shadow-xs border border-[var(--border-muted)]'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              )}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-[#ff334b]" />
-              <span>{t.feeds.curated}</span>
-            </button>
+        {/* The issue's departments. Each keeps its own ink wherever it appears. */}
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b-2 border-[var(--ink)]">
+          <nav className="scroll-fade flex items-stretch gap-4 sm:gap-6 overflow-x-auto -mb-[2px] pr-6">
+            {feeds.map((feed) => {
+              const isActive = feedMode === feed.id && !activeSearchIntent;
+              const Icon = feed.icon;
+              return (
+                <button
+                  key={feed.id}
+                  type="button"
+                  onClick={() => handleFeedModeChange(feed.id)}
+                  style={{ ['--spot' as string]: FEED_INK[feed.id] }}
+                  className={cn(
+                    'stamp flex items-center gap-1.5 pb-2 text-[10px] whitespace-nowrap border-b-[3px] transition-colors cursor-pointer',
+                    isActive
+                      ? 'text-[var(--ink)] border-[var(--spot)]'
+                      : 'text-[var(--ink-faint)] border-transparent hover:text-[var(--ink)]'
+                  )}
+                >
+                  <Icon className={cn('w-3.5 h-3.5', isActive && 'text-[var(--spot-text)]')} />
+                  <span>{feed.label}</span>
+                </button>
+              );
+            })}
+          </nav>
 
-            <button
-              type="button"
-              onClick={() => handleFeedModeChange('trending')}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer',
-                feedMode === 'trending'
-                  ? 'bg-[#ff334b]/15 text-[#ff334b] font-semibold border border-[#ff334b]/40 shadow-xs'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              )}
-            >
-              <Flame className="w-3.5 h-3.5 text-orange-500" />
-              <span>{t.feeds.trending}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleFeedModeChange('recent_updates')}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer',
-                feedMode === 'recent_updates'
-                  ? 'bg-amber-500/15 text-amber-400 font-semibold border border-amber-500/40 shadow-xs'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              )}
-            >
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span>{t.feeds.recentUpdates}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleFeedModeChange('new_releases')}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer',
-                feedMode === 'new_releases'
-                  ? 'bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/40 shadow-xs'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              )}
-            >
-              <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{t.feeds.newReleases}</span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 pb-2">
             {/* Trending time window — only meaningful for the trending feed. */}
             {feedMode === 'trending' && !activeSearchIntent && (
-              <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] font-mono-data text-[11px]">
+              <div className="flex items-center gap-1">
+                <span className="stamp text-[9px] text-[var(--ink-faint)] mr-1">
+                  {t.feeds.windowLabel}
+                </span>
                 {(
                   [
                     ['today', t.feeds.windowToday],
@@ -447,10 +435,10 @@ export function DiscoveryWorkspace({
                     type="button"
                     onClick={() => handleTrendingWindowChange(value)}
                     className={cn(
-                      'px-2 py-1 rounded-md transition-colors cursor-pointer whitespace-nowrap',
+                      'stamp px-1.5 py-0.5 text-[9px] whitespace-nowrap transition-colors cursor-pointer border',
                       trendingWindow === value
-                        ? 'bg-[#ff334b]/15 text-[#ff334b] font-semibold'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                        ? 'bg-[var(--ink)] text-[var(--paper)] border-[var(--ink)]'
+                        : 'border-[var(--rule)] text-[var(--ink-faint)] hover:text-[var(--ink)] hover:border-[var(--ink)]'
                     )}
                   >
                     {label}
@@ -460,61 +448,59 @@ export function DiscoveryWorkspace({
             )}
 
             {feedMode !== 'curated' && !activeSearchIntent && (
-              <div className="flex items-center gap-2 text-[11px] font-mono-data text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="stamp flex items-center gap-1.5 text-[9px] text-[var(--ink-green)]">
+                <span className="ink-pulse w-1.5 h-1.5 bg-[var(--ink-green)]" aria-hidden />
                 <span>{t.feeds.liveBadge}</span>
-              </div>
+              </span>
             )}
           </div>
         </div>
 
-        {/* Clean AI Discovery Insight Banner */}
+        {/* When a search is live, the desk's answer runs as the issue's lede. */}
         {activeSearchIntent && (
-          <div className="p-4 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-start justify-between gap-3 text-xs shadow-xs">
-            <div className="flex items-start gap-3">
-              <div className="w-7 h-7 rounded-lg bg-[#ff334b]/10 border border-[#ff334b]/30 flex items-center justify-center shrink-0 mt-0.5">
-                <Sparkles className="w-4 h-4 text-[#ff334b]" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2 font-mono-data text-xs">
-                  <span className="font-semibold text-[var(--text-primary)]">
-                    {t.search.semanticMatch}: <span className="text-[var(--text-secondary)] font-normal italic">"{activeSearchIntent}"</span>
-                  </span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-[var(--bg-surface-raised)] border border-[var(--border-subtle)] text-[#ff334b] font-bold">
-                    {t.search.titlesCount(results.length)}
-                  </span>
-                </div>
-                {aiSummary && (
-                  <p className="text-[var(--text-secondary)] font-jakarta leading-relaxed mt-0.5">
-                    {aiSummary}
-                  </p>
-                )}
-              </div>
+          <div className="border-t-[3px] border-[var(--spot)] pt-2.5">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <p className="stamp text-[9px] text-[var(--spot-text)]">
+                {t.search.semanticMatch} — {t.search.titlesCount(results.length)}
+              </p>
+              <button
+                type="button"
+                onClick={async () => {
+                  setActiveSearchIntent(null);
+                  setAiSummary(null);
+                  setQuery('');
+                  await loadFeedData(feedMode, selectedType, trendingWindow, 1);
+                }}
+                className="stamp text-[9px] text-[var(--ink-faint)] hover:text-[var(--ink)] underline transition-colors cursor-pointer"
+              >
+                {t.search.resetQuery}
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={async () => {
-                setActiveSearchIntent(null);
-                setAiSummary(null);
-                setQuery('');
-                await loadFeedData(feedMode, selectedType, trendingWindow, 1);
-              }}
-              className="text-[11px] font-mono-data text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors shrink-0 underline cursor-pointer"
-            >
-              {t.search.resetQuery}
-            </button>
+            <p className="text-[15px] sm:text-base text-[var(--ink)] leading-snug mt-1.5 max-w-[62ch]">
+              “{activeSearchIntent}”
+            </p>
+
+            {aiSummary && (
+              <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed mt-2 max-w-[68ch]">
+                {aiSummary}
+              </p>
+            )}
           </div>
         )}
 
-        {/* Comic Grid */}
-        <div className="flex-1 pb-8">
-          <div className="flex items-center justify-between mb-3 text-xs font-mono-data text-[var(--text-muted)]">
-            <span>
-              {t.common.results} ({results.length}
-              {hasMore && !activeSearchIntent ? '+' : ''})
+        {/* The ranking */}
+        <section className="flex-1 pb-8">
+          <div className="flex items-baseline justify-between gap-3 mb-3.5">
+            <h2 className="masthead text-[clamp(1.1rem,2.4vw,1.5rem)] text-[var(--ink)]">
+              {activeSearchIntent ? t.search.semanticMatch : t.common.results}
+            </h2>
+            <span className="stamp figures text-[10px] text-[var(--ink-faint)]">
+              {results.length}
+              {hasMore && !activeSearchIntent ? '+' : ''}
+              {/* A pointer hint has no meaning on a touch viewport. */}
+              <span className="hidden sm:inline"> · {t.common.clickToInspect}</span>
             </span>
-            <span>{t.common.clickToInspect}</span>
           </div>
 
           <ComicGridView
@@ -528,7 +514,20 @@ export function DiscoveryWorkspace({
             isLoadingMore={isLoadingMore}
             onLoadMore={activeSearchIntent ? undefined : loadMore}
           />
-        </div>
+
+          <Folio
+            section={activeSearchIntent ? t.search.semanticMatch : t.feeds[
+              feedMode === 'curated'
+                ? 'curated'
+                : feedMode === 'trending'
+                  ? 'trending'
+                  : feedMode === 'recent_updates'
+                    ? 'recentUpdates'
+                    : 'newReleases'
+            ]}
+            tally={`${results.length}${hasMore && !activeSearchIntent ? '+' : ''}`}
+          />
+        </section>
       </main>
 
       {/* Right Master-Detail Inspector Panel */}

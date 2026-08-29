@@ -1,17 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import {
-  X,
-  Bookmark,
-  ExternalLink,
-  Star,
-  Radio,
-  ThumbsUp,
-  Network,
-  BookOpen,
-  ChevronDown,
-} from 'lucide-react';
+import { X, Bookmark, ExternalLink, Star, ChevronDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { PrintedSelect } from '@/components/molecules/printed-select';
 import { useI18n } from '@/core/i18n/context';
 import { syncLiveComicData, fetchFreshCoverFromAniList } from '@/services/anilist-live.service';
 import { getComicGraphData, type ComicGraphData } from '@/services/recommendation-graph.service';
@@ -32,13 +22,16 @@ interface ComicInspectorProps {
   onSelectRelatedTitle?: (title: string) => void;
 }
 
-function InspectorCoverImage({
-  src,
-  alt,
-}: {
-  src: string;
-  alt: string;
-}) {
+/** A section head in the spread: name, hairline, content. No boxes. */
+function Head({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="stamp text-[9px] text-[var(--ink-faint)] pb-1.5 mb-2.5 border-b border-[var(--rule)]">
+      {children}
+    </h3>
+  );
+}
+
+function InspectorCoverImage({ src, alt, label }: { src: string; alt: string; label: string }) {
   const [currentSrc, setCurrentSrc] = useState(src);
   const [loaded, setLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -70,7 +63,7 @@ function InspectorCoverImage({
   };
 
   return (
-    <div className="relative w-24 aspect-[3/4] rounded-xl overflow-hidden bg-[var(--bg-surface-raised)] shrink-0 border border-[var(--border-subtle)] shadow-md flex items-center justify-center">
+    <div className="relative w-28 aspect-[3/4] overflow-hidden bg-[var(--paper-plate)] shrink-0 outline outline-1 -outline-offset-1 outline-[var(--rule)] flex items-center justify-center">
       {!loaded && !hasError && <div className="absolute inset-0 shimmer-element" />}
       <img
         ref={imgRef}
@@ -84,15 +77,18 @@ function InspectorCoverImage({
           loaded && !hasError ? 'opacity-100' : 'opacity-0'
         )}
       />
-      {hasError && (
-        <span className="text-[10px] font-mono-data text-[var(--text-muted)] text-center px-1">
-          No Cover
-        </span>
-      )}
+      {hasError && <span className="stamp text-[9px] text-[var(--ink-faint)]">{label}</span>}
     </div>
   );
 }
 
+/**
+ * The entry's own spread.
+ *
+ * Inherits `--spot` from whichever view opened it, so the panel prints in that
+ * department's ink without being told. Data sits in a ruled column set the way
+ * a periodical prints its specification block — never as three metric tiles.
+ */
 export function ComicInspector({
   comic,
   onClose,
@@ -148,344 +144,335 @@ export function ComicInspector({
 
   const typeVariant =
     comic.type === 'MANHWA' ? 'manhwa' : comic.type === 'MANGA' ? 'manga' : 'manhua';
+  const title = comic.title_english || comic.title_romaji;
 
   return (
     <>
       {/* Mobile Backdrop Overlay (< lg) */}
       <div
         onClick={onClose}
-        className="fixed inset-0 z-40 bg-black/70 backdrop-blur-xs lg:hidden animate-in fade-in duration-150"
+        className="fixed inset-0 z-40 bg-[color-mix(in_oklab,var(--ink)_70%,transparent)] lg:hidden animate-in fade-in duration-150"
       />
 
-      <aside className="fixed inset-x-0 bottom-0 z-50 max-h-[90vh] rounded-t-3xl border-t border-[var(--border-muted)] lg:static lg:inset-auto lg:z-auto lg:w-[380px] lg:my-5 lg:mr-5 lg:h-[calc(100%-2.5rem)] lg:max-h-none lg:rounded-2xl lg:border lg:border-[var(--border-subtle)] lg:shadow-xl bg-[var(--bg-surface)] flex flex-col h-auto overflow-y-auto p-4 sm:p-5 gap-4 sm:gap-5 shadow-2xl animate-in slide-in-from-bottom-10 lg:slide-in-from-right duration-200">
-        {/* Mobile Pull Handle Pill */}
-        <div className="w-10 h-1 rounded-full bg-[var(--border-muted)] mx-auto -mt-1 mb-1 lg:hidden shrink-0" />
-
-        {/* Top Bar: Format badge & Close button */}
-        <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
-          <div className="flex items-center gap-2">
-            <Badge variant={typeVariant}>{comic.type}</Badge>
-            <Badge variant="status">{liveStatus}</Badge>
-            {isLiveSynced && (
-              <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/60 text-emerald-300 font-mono-data">
-                <Radio className="w-2.5 h-2.5 text-emerald-400 animate-pulse" />
-                <span>LIVE</span>
+      <aside className="fixed inset-x-0 bottom-0 z-50 max-h-[88vh] border-t-2 border-[var(--ink)] lg:static lg:inset-auto lg:z-auto lg:w-[400px] lg:h-full lg:max-h-none lg:border-t-0 lg:border-l lg:border-[var(--rule)] bg-[var(--paper-sheet)] flex flex-col overflow-y-auto shadow-[var(--lift-shadow)] lg:shadow-none animate-in slide-in-from-bottom-10 lg:slide-in-from-right duration-200">
+        {/* Sticky top rail */}
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-2 px-4 py-2 bg-[var(--ink)] text-[var(--paper)]">
+          <div className="flex items-center gap-2 min-w-0">
+            {isLiveSynced ? (
+              <span className="stamp flex items-center gap-1.5 text-[9px] opacity-90">
+                <span className="ink-pulse w-1.5 h-1.5 bg-[var(--paper)]" aria-hidden />
+                {t.feeds.liveBadge}
               </span>
-            )}
+            ) : null}
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-raised)] transition-colors cursor-pointer"
+            className="p-1 text-[var(--paper)] opacity-70 hover:opacity-100 transition-opacity cursor-pointer shrink-0"
             title={t.inspector.closeInspector}
+            aria-label={t.inspector.closeInspector}
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-      {/* Cover & Title Block */}
-      <div className="flex gap-4">
-        {(liveCover || comic.cover_image_url) && (
-          <InspectorCoverImage
-            src={liveCover || comic.cover_image_url || ''}
-            alt={comic.title_english || comic.title_romaji}
-          />
-        )}
-
-        <div className="flex flex-col justify-between flex-1 min-w-0">
-          <div>
-            <h2 className="text-base font-bold text-[var(--text-primary)] leading-snug line-clamp-2 font-jakarta">
-              {comic.title_english || comic.title_romaji}
-            </h2>
-            {comic.title_romaji && comic.title_english && (
-              <p className="text-xs text-[var(--text-muted)] truncate mt-0.5 font-jakarta">{comic.title_romaji}</p>
+        <div className="px-4 sm:px-5 py-4 flex flex-col gap-5">
+          {/* The title block */}
+          <div className="flex gap-4">
+            {(liveCover || comic.cover_image_url) && (
+              <InspectorCoverImage src={liveCover || comic.cover_image_url || ''} alt={title} label={t.press.noPlate} />
             )}
-            {comic.title_native && (
-              <p className="text-xs text-[var(--text-muted)] font-mono-data mt-0.5">{comic.title_native}</p>
-            )}
-          </div>
 
-          <div className="flex items-center gap-2 mt-2">
-            <Button
-              variant={isBookmarked ? 'crimson' : 'secondary'}
-              size="sm"
-              onClick={() => onToggleBookmark(comic.id)}
-              className="w-full text-xs font-jakarta"
-            >
-              <Bookmark className={cn('w-3.5 h-3.5', isBookmarked && 'fill-current')} />
-              <span>{isBookmarked ? t.common.bookmarked : t.common.save}</span>
-            </Button>
+            <div className="flex flex-col min-w-0 flex-1">
+              <h2 className="masthead text-[clamp(1.15rem,4.5vw,1.55rem)] leading-[1.05] text-[var(--ink)] line-clamp-3">
+                {title}
+              </h2>
+              {comic.title_romaji && comic.title_english && (
+                <p className="text-[11px] text-[var(--ink-faint)] truncate mt-1.5">
+                  {comic.title_romaji}
+                </p>
+              )}
+              {comic.title_native && (
+                <p className="text-[11px] text-[var(--ink-faint)] truncate">{comic.title_native}</p>
+              )}
 
-            {comic.site_url && (
-              <a
-                href={comic.site_url}
-                target="_blank"
-                rel="noreferrer"
-                className="p-1.5 rounded-lg bg-[var(--bg-surface-raised)] hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)] transition-colors shrink-0"
-                title={t.inspector.openAniList}
-              >
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
+              <div className="flex items-center gap-1.5 mt-auto pt-3">
+                <button
+                  type="button"
+                  onClick={() => onToggleBookmark(comic.id)}
+                  className={cn(
+                    'stamp flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-[10px] border transition-colors cursor-pointer active:translate-y-px',
+                    isBookmarked
+                      ? 'bg-[var(--spot)] text-[var(--on-spot)] border-[var(--spot)]'
+                      : 'bg-[var(--ink)] text-[var(--paper)] border-[var(--ink)] hover:bg-[var(--ink-soft)]'
+                  )}
+                >
+                  <Bookmark className={cn('w-3.5 h-3.5', isBookmarked && 'fill-current')} />
+                  <span>{isBookmarked ? t.common.bookmarked : t.common.save}</span>
+                </button>
 
-      {/* Reading Status Tracker (if bookmarked) */}
-      {isBookmarked && (
-        <div className="p-3 rounded-xl bg-[var(--bg-surface-raised)] border border-[var(--border-subtle)] flex flex-col gap-2 font-mono-data text-xs animate-in fade-in duration-150">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-[var(--text-muted)] uppercase font-semibold flex items-center gap-1">
-              <BookOpen className="w-3 h-3 text-[#ff334b]" />
-              {t.inspector.readingStatus}
-            </span>
-            <select
-              value={bookmarkItem?.status || 'PLAN_TO_READ'}
-              onChange={(e) =>
-                onUpdateBookmarkStatus?.(
-                  comic.id,
-                  e.target.value as ReadingStatus,
-                  bookmarkItem?.progressChapter
-                )
-              }
-              className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] rounded px-2 py-0.5 text-[11px] focus:outline-none focus:border-[#ff334b] cursor-pointer"
-            >
-              <option value="PLAN_TO_READ">{t.inspector.planToRead}</option>
-              <option value="READING">{t.inspector.reading}</option>
-              <option value="COMPLETED">{t.inspector.completed}</option>
-            </select>
-          </div>
-
-          {bookmarkItem?.status === 'READING' && (
-            <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)] text-[11px]">
-              <span className="text-[var(--text-muted)]">{t.inspector.currentProgress}:</span>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-[var(--text-muted)]">Ch.</span>
-                <input
-                  type="number"
-                  min="0"
-                  max={comic.total_chapters || 9999}
-                  value={bookmarkItem?.progressChapter !== undefined ? bookmarkItem.progressChapter : 0}
-                  onChange={(e) => {
-                    const parsed = parseInt(e.target.value, 10);
-                    onUpdateBookmarkStatus?.(
-                      comic.id,
-                      'READING',
-                      isNaN(parsed) ? 0 : Math.max(0, parsed)
-                    );
-                  }}
-                  className="w-14 px-1.5 py-0.5 rounded bg-[var(--input-bg)] border border-[var(--border-subtle)] text-center text-xs text-[var(--text-primary)] font-bold focus:outline-none focus:border-[#ff334b]"
-                />
-                <span className="text-[var(--text-muted)]">
-                  / {comic.total_chapters ? `${comic.total_chapters} ch` : '∞'}
-                </span>
+                {comic.site_url && (
+                  <a
+                    href={comic.site_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-2 border border-[var(--rule)] text-[var(--ink-soft)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors shrink-0"
+                    title={t.inspector.openAniList}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                )}
               </div>
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Metadata Grid */}
-      <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono-data">
-        <div className="p-2 rounded-lg bg-[var(--bg-surface-raised)] border border-[var(--border-subtle)] flex flex-col">
-          <span className="text-[10px] text-[var(--text-muted)] uppercase font-sans">{t.inspector.rating}</span>
-          <span className="text-amber-500 font-semibold mt-0.5 flex items-center justify-center gap-1">
-            <Star className="w-3 h-3 fill-current" />
-            {liveScore ? (liveScore / 10).toFixed(1) : 'N/A'}
-          </span>
-        </div>
-
-        <div className="p-2 rounded-lg bg-[var(--bg-surface-raised)] border border-[var(--border-subtle)] flex flex-col">
-          <span className="text-[10px] text-[var(--text-muted)] uppercase font-sans">{t.inspector.chapters}</span>
-          <span className="text-[var(--text-primary)] font-semibold mt-0.5">
-            {liveChapters ? `${liveChapters} ch` : t.common.ongoing}
-          </span>
-        </div>
-
-        <div className="p-2 rounded-lg bg-[var(--bg-surface-raised)] border border-[var(--border-subtle)] flex flex-col">
-          <span className="text-[10px] text-[var(--text-muted)] uppercase font-sans">{t.inspector.origin}</span>
-          <span className="text-[var(--text-primary)] font-semibold mt-0.5">
-            {comic.country_of_origin} • {comic.release_year || '-'}
-          </span>
-        </div>
-      </div>
-
-      {/* AI Match Rationale (if present) */}
-      {comic.matchReason && (
-        <div className="p-3 rounded-xl bg-[var(--bg-surface-raised)] border border-[var(--border-subtle)] text-[var(--text-secondary)] text-xs flex flex-col gap-1 leading-relaxed">
-          <span className="text-[11px] font-semibold text-[#ff334b] uppercase tracking-wider font-mono-data">
-            {t.inspector.matchRationale}
-          </span>
-          <p className="text-[var(--text-primary)] font-jakarta">{comic.matchReason}</p>
-        </div>
-      )}
-
-      {/* Synopsis */}
-      <div className="flex flex-col gap-1.5">
-        <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider font-mono-data">
-          {t.inspector.synopsis}
-        </span>
-        <p className="text-xs text-[var(--text-secondary)] leading-relaxed max-h-56 overflow-y-auto pr-1 font-jakarta">
-          {comic.synopsis || t.inspector.noSynopsis}
-        </p>
-      </div>
-
-      {/* Zero-Token Community Recommendations (Instant 1-Click Select) */}
-      {graphData && graphData.recommendations.length > 0 && (
-        <div className="flex flex-col gap-2 pt-2 border-t border-[var(--border-subtle)]">
-          <div className="flex items-center justify-between font-mono-data text-xs">
-            <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-1.5">
-              <ThumbsUp className="w-3 h-3 text-amber-400" />
-              {t.inspector.communityRecs}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="text-[10px] text-[var(--text-muted)] font-mono-data">
-                {Math.min(recsShown, graphData.recommendations.length)}/
-                {graphData.recommendations.length}
-              </span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-[var(--bg-surface-raised)] border border-[var(--border-subtle)] text-zinc-400 font-bold">
-                {t.inspector.zeroToken}
-              </span>
-            </span>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            {graphData.recommendations.slice(0, recsShown).map((rec) => (
+          {/* The specification block, set as a ruled table. */}
+          <dl className="border-t-2 border-[var(--ink)]">
+            {[
+              {
+                label: t.inspector.rating,
+                value: liveScore ? (liveScore / 10).toFixed(1) : '—',
+                star: Boolean(liveScore),
+              },
+              {
+                label: t.inspector.chapters,
+                value: liveChapters ? `${liveChapters}` : t.common.ongoing,
+              },
+              { label: t.catalog.status, value: liveStatus },
+              {
+                label: t.inspector.origin,
+                value: [comic.country_of_origin, comic.release_year].filter(Boolean).join(' · ') || '—',
+              },
+            ].map((row) => (
               <div
-                key={rec.id}
-                onClick={() => onSelectRelatedTitle?.(rec.title)}
-                className="flex items-center justify-between p-2 rounded-lg bg-[var(--bg-surface-raised)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-subtle)] hover:border-[var(--border-muted)] transition-colors cursor-pointer group select-none"
+                key={row.label}
+                className="flex items-baseline justify-between gap-3 py-1.5 border-b border-[var(--rule)]"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  {rec.coverImage ? (
-                    <img
-                      src={rec.coverImage}
-                      alt={rec.title}
-                      className="w-7 h-9 object-cover rounded shrink-0 bg-zinc-900"
-                    />
-                  ) : (
-                    <div className="w-7 h-9 rounded bg-zinc-800 shrink-0" />
-                  )}
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-semibold text-[var(--text-primary)] group-hover:text-[#ff334b] transition-colors truncate font-jakarta">
-                      {rec.title}
-                    </span>
-                    <span className="text-[10px] text-[var(--text-muted)] font-mono-data">
-                      [{rec.type}] {rec.averageScore ? `★ ${(rec.averageScore / 10).toFixed(1)}` : ''}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1 text-[10px] text-amber-500 font-mono-data font-semibold shrink-0 ml-2">
-                  <span>+{rec.votes}</span>
-                </div>
+                <dt className="stamp text-[9px] text-[var(--ink-faint)]">{row.label}</dt>
+                <dd className="figures flex items-center gap-1 text-sm font-semibold text-[var(--ink)]">
+                  {row.star && <Star className="w-3 h-3 fill-current text-[var(--ink-gold)]" />}
+                  <span className="truncate">{row.value}</span>
+                </dd>
               </div>
             ))}
-          </div>
+          </dl>
 
-          {graphData.recommendations.length > recsShown && (
-            <button
-              type="button"
-              onClick={() =>
-                setRecsShown((n) => Math.min(n + RECS_PAGE_SIZE, graphData.recommendations.length))
-              }
-              className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-[var(--bg-surface-raised)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-subtle)] text-[11px] font-mono-data text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-            >
-              <ChevronDown className="w-3 h-3" />
-              {t.inspector.showMore(graphData.recommendations.length - recsShown)}
-            </button>
+          {/* Reading status — the reader's own marginal note */}
+          {isBookmarked && (
+            <section>
+              <Head>{t.inspector.readingStatus}</Head>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs text-[var(--ink-soft)]">{t.inspector.readingStatus}</span>
+                <PrintedSelect
+                  label={t.inspector.readingStatus}
+                  value={(bookmarkItem?.status || 'PLAN_TO_READ') as ReadingStatus}
+                  onChange={(status) =>
+                    onUpdateBookmarkStatus?.(comic.id, status, bookmarkItem?.progressChapter)
+                  }
+                  options={[
+                    { value: 'PLAN_TO_READ' as const, label: t.inspector.planToRead },
+                    { value: 'READING' as const, label: t.inspector.reading },
+                    { value: 'COMPLETED' as const, label: t.inspector.completed },
+                  ]}
+                  className="min-w-[8rem]"
+                />
+              </div>
+
+              {bookmarkItem?.status === 'READING' && (
+                <label className="flex items-center justify-between gap-2 mt-2.5 pt-2.5 border-t border-[var(--rule)]">
+                  <span className="text-xs text-[var(--ink-soft)]">{t.inspector.currentProgress}</span>
+                  <span className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="0"
+                      max={comic.total_chapters || 9999}
+                      value={bookmarkItem?.progressChapter !== undefined ? bookmarkItem.progressChapter : 0}
+                      onChange={(e) => {
+                        const parsed = parseInt(e.target.value, 10);
+                        onUpdateBookmarkStatus?.(
+                          comic.id,
+                          'READING',
+                          isNaN(parsed) ? 0 : Math.max(0, parsed)
+                        );
+                      }}
+                      className="figures w-16 px-2 py-1 bg-[var(--paper)] border border-[var(--rule)] focus:border-[var(--spot)] text-center text-xs font-semibold text-[var(--ink)] focus:outline-none transition-colors"
+                    />
+                    <span className="stamp figures text-[9px] text-[var(--ink-faint)]">
+                      / {comic.total_chapters || '∞'}
+                    </span>
+                  </span>
+                </label>
+              )}
+            </section>
           )}
 
-          {recsShown > RECS_PAGE_SIZE && (
-            <button
-              type="button"
-              onClick={() => setRecsShown(RECS_PAGE_SIZE)}
-              className="text-[10px] font-mono-data text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer underline self-center"
-            >
-              {t.inspector.showLess}
-            </button>
+          {/* The editor's note */}
+          {comic.matchReason && (
+            <section className="border-t-[3px] border-[var(--spot)] pt-2.5">
+              <p className="stamp text-[9px] text-[var(--spot-text)] mb-1.5">
+                {t.inspector.matchRationale}
+              </p>
+              <p className="text-[14px] text-[var(--ink)] leading-relaxed">{comic.matchReason}</p>
+            </section>
+          )}
+
+          {/* Synopsis */}
+          <section>
+            <Head>{t.inspector.synopsis}</Head>
+            <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed">
+              {comic.synopsis || t.inspector.noSynopsis}
+            </p>
+          </section>
+
+          {/* Reader recommendations */}
+          {graphData && graphData.recommendations.length > 0 && (
+            <section>
+              <Head>
+                {t.inspector.communityRecs} ·{' '}
+                {Math.min(recsShown, graphData.recommendations.length)}/
+                {graphData.recommendations.length}
+              </Head>
+
+              <ul className="flex flex-col">
+                {graphData.recommendations.slice(0, recsShown).map((rec) => (
+                  <li key={rec.id}>
+                    <button
+                      type="button"
+                      onClick={() => onSelectRelatedTitle?.(rec.title)}
+                      className="group w-full flex items-center justify-between gap-2.5 py-2 border-b border-[var(--rule)] text-left cursor-pointer transition-colors hover:bg-[var(--paper-deep)]"
+                    >
+                      <span className="flex items-center gap-2.5 min-w-0">
+                        {rec.coverImage ? (
+                          <img
+                            src={rec.coverImage}
+                            alt=""
+                            className="w-8 aspect-[3/4] object-cover shrink-0 bg-[var(--paper-plate)]"
+                          />
+                        ) : (
+                          <span className="w-8 aspect-[3/4] bg-[var(--paper-plate)] shrink-0" />
+                        )}
+                        <span className="flex flex-col min-w-0">
+                          <span className="text-xs font-semibold text-[var(--ink)] group-hover:text-[var(--spot-text)] transition-colors truncate">
+                            {rec.title}
+                          </span>
+                          <span className="stamp figures text-[9px] text-[var(--ink-faint)] mt-0.5">
+                            {rec.type}
+                            {rec.averageScore ? ` · ★ ${(rec.averageScore / 10).toFixed(1)}` : ''}
+                          </span>
+                        </span>
+                      </span>
+                      <span className="stamp figures text-[9px] text-[var(--spot-text)] shrink-0">
+                        +{rec.votes}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="flex items-center gap-3 mt-2">
+                {graphData.recommendations.length > recsShown && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRecsShown((n) =>
+                        Math.min(n + RECS_PAGE_SIZE, graphData.recommendations.length)
+                      )
+                    }
+                    className="stamp flex items-center gap-1 text-[9px] text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+                  >
+                    <ChevronDown className="w-3 h-3" />
+                    {t.inspector.showMore(graphData.recommendations.length - recsShown)}
+                  </button>
+                )}
+                {recsShown > RECS_PAGE_SIZE && (
+                  <button
+                    type="button"
+                    onClick={() => setRecsShown(RECS_PAGE_SIZE)}
+                    className="stamp text-[9px] text-[var(--ink-faint)] hover:text-[var(--ink)] underline transition-colors cursor-pointer"
+                  >
+                    {t.inspector.showLess}
+                  </button>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Related titles */}
+          {graphData && graphData.relations.length > 0 && (
+            <section>
+              <Head>{t.inspector.relations}</Head>
+              <div className="flex flex-wrap gap-1">
+                {graphData.relations.slice(0, relationsShown).map((rel, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => onSelectRelatedTitle?.(rel.title)}
+                    className="flex items-center gap-1.5 px-1.5 py-1 border border-[var(--rule)] hover:border-[var(--ink)] transition-colors cursor-pointer select-none"
+                    title={`${rel.relationType}: ${rel.title}`}
+                  >
+                    <span className="stamp text-[9px] text-[var(--spot-text)]">
+                      {rel.relationType}
+                    </span>
+                    <span className="text-[11px] text-[var(--ink)] truncate max-w-[140px]">
+                      {rel.title}
+                    </span>
+                  </button>
+                ))}
+
+                {graphData.relations.length > relationsShown && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRelationsShown((n) =>
+                        Math.min(n + RELATIONS_PAGE_SIZE, graphData.relations.length)
+                      )
+                    }
+                    className="stamp figures px-2 py-1 text-[9px] border border-[var(--rule)] text-[var(--ink-soft)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors cursor-pointer"
+                  >
+                    +{graphData.relations.length - relationsShown}
+                  </button>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Tropes */}
+          {comic.tags && comic.tags.length > 0 && (
+            <section>
+              <Head>{t.inspector.tropes}</Head>
+              <div className="flex flex-wrap gap-1">
+                {comic.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="text-[11px] px-1.5 py-0.5 border border-[var(--rule)] text-[var(--ink-soft)]"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Genres */}
+          {comic.genres && comic.genres.length > 0 && (
+            <section className="pb-2">
+              <Head>{t.inspector.genres}</Head>
+              <div className="flex flex-wrap gap-1">
+                <Badge variant={typeVariant}>{comic.type}</Badge>
+                {comic.genres.map((g) => (
+                  <span
+                    key={g}
+                    className="text-[11px] px-1.5 py-0.5 border border-[var(--rule)] text-[var(--ink)]"
+                  >
+                    {g}
+                  </span>
+                ))}
+              </div>
+            </section>
           )}
         </div>
-      )}
-
-      {/* Related Franchises (Prequel / Sequel / Spin-off) */}
-      {graphData && graphData.relations.length > 0 && (
-        <div className="flex flex-col gap-1.5 pt-2 border-t border-[var(--border-subtle)]">
-          <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider font-mono-data flex items-center gap-1.5">
-            <Network className="w-3 h-3 text-[#ff334b]" />
-            {t.inspector.relations}
-          </span>
-          <div className="flex flex-wrap gap-1">
-            {graphData.relations.slice(0, relationsShown).map((rel, idx) => (
-              <span
-                key={idx}
-                onClick={() => onSelectRelatedTitle?.(rel.title)}
-                className="text-[11px] px-2 py-1 rounded bg-[var(--bg-surface-raised)] hover:bg-[var(--bg-surface-hover)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:border-[var(--border-muted)] cursor-pointer font-jakarta flex items-center gap-1 transition-colors select-none"
-                title={`${rel.relationType}: ${rel.title}`}
-              >
-                <strong className="text-[9px] text-[#ff334b] uppercase font-mono-data">
-                  {rel.relationType}
-                </strong>
-                <span className="truncate max-w-[140px]">{rel.title}</span>
-              </span>
-            ))}
-
-            {graphData.relations.length > relationsShown && (
-              <button
-                type="button"
-                onClick={() =>
-                  setRelationsShown((n) =>
-                    Math.min(n + RELATIONS_PAGE_SIZE, graphData.relations.length)
-                  )
-                }
-                className="text-[11px] px-2 py-1 rounded bg-[var(--bg-surface-raised)] hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)] cursor-pointer font-mono-data transition-colors"
-              >
-                +{graphData.relations.length - relationsShown}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Tropes & Tags */}
-      {comic.tags && comic.tags.length > 0 && (
-        <div className="flex flex-col gap-1.5 pt-2 border-t border-[var(--border-subtle)]">
-          <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider font-mono-data">
-            {t.inspector.tropes}
-          </span>
-          <div className="flex flex-wrap gap-1">
-            {comic.tags.map((tTag) => (
-              <span
-                key={tTag}
-                className="text-[11px] px-2 py-0.5 rounded bg-[var(--bg-surface-raised)] text-[var(--text-secondary)] border border-[var(--border-subtle)] font-jakarta"
-              >
-                #{tTag}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Genres */}
-      {comic.genres && comic.genres.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider font-mono-data">
-            {t.inspector.genres}
-          </span>
-          <div className="flex flex-wrap gap-1">
-            {comic.genres.map((g) => (
-              <span
-                key={g}
-                className="text-[11px] px-2 py-0.5 rounded bg-[var(--bg-surface-raised)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-jakarta"
-              >
-                {g}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </aside>
+      </aside>
     </>
   );
 }

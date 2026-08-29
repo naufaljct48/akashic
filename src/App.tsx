@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { I18nProvider } from '@/core/i18n/context';
+import { I18nProvider, useI18n } from '@/core/i18n/context';
 import { ThemeProvider } from '@/core/theme/theme-context';
 import { WorkspaceHeader, type WorkspaceTab } from '@/components/templates/workspace-header';
 import { DiscoveryWorkspace } from '@/components/organisms/discovery-workspace';
@@ -23,13 +23,16 @@ const BookmarksView = lazy(() =>
   }))
 );
 
+/** The section is on the press. Same three stations as the editorial desk. */
 function TabLoadingFallback() {
+  const { t } = useI18n();
   return (
     <div className="flex-1 flex items-center justify-center p-12">
-      <div className="flex flex-col items-center gap-3 font-mono-data text-xs text-[var(--text-muted)] animate-pulse">
-        <div className="w-8 h-8 rounded-full border-2 border-[#ff334b] border-t-transparent animate-spin" />
-        <span>Loading workspace modules...</span>
-      </div>
+      <p className="stamp flex items-center gap-3 text-[10px] text-[var(--ink-faint)]" role="status">
+        <span className="press-stage">{t.press.setting}</span>
+        <span className="press-stage">{t.press.inking}</span>
+        <span className="press-stage">{t.press.printing}</span>
+      </p>
     </div>
   );
 }
@@ -108,7 +111,7 @@ function AppContent() {
 
   // Main Application Workspace (Discovery, Catalog, Bookmarks)
   return (
-    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans selection:bg-[#ff334b] selection:text-white transition-colors duration-150">
+    <div className="min-h-screen bg-[var(--paper)] text-[var(--ink)] flex flex-col font-sans">
       {/* Top Technical Workspace Header with Elastic Quick Search */}
       <WorkspaceHeader
         activeTab={activeTab}

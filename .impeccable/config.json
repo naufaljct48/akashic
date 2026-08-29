@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-radius",
+        "value": "2px",
+        "createdAt": "2026-08-29T14:18:55.684Z",
+        "reason": "flag-icons.tsx: the 2px corner is the rendering of a national flag's own shape, not a UI radius on the world's near-zero scale"
+      }
+    ]
+  }
+}

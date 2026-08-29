@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Bookmark, BookOpen, Clock, CheckCircle, Download, Upload } from 'lucide-react';
+import { BookOpen, Download, Upload } from 'lucide-react';
 import { ComicGridView } from '@/components/organisms/comic-grid-view';
 import { ComicInspector } from '@/components/organisms/comic-inspector';
-import { Button } from '@/components/ui/button';
+import { Folio } from '@/components/molecules/folio';
 import { useI18n } from '@/core/i18n/context';
 import { supabase } from '@/lib/supabase/client';
 import { findComicByTitle, PAGE_SIZE } from '@/services/comic.service';
@@ -159,24 +159,33 @@ export function BookmarksView({
     COMPLETED: bookmarkedComics.filter((c) => bookmarks[c.id]?.status === 'COMPLETED').length,
   };
 
-  return (
-    <div className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-56px)] overflow-hidden max-w-[1600px] w-full mx-auto">
-      <main className="flex-1 flex flex-col h-full overflow-y-auto px-4 sm:px-6 py-5 gap-4 pb-24 lg:pb-8">
-        {/* Header Title & Status Filter Pills */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-[var(--border-subtle)] font-mono-data text-xs">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Bookmark className="w-4 h-4 text-[#ff334b] fill-current" />
-            <span className="text-[var(--text-primary)] font-semibold uppercase">
-              {t.bookmarks.title} ({bookmarkedComics.length})
-            </span>
+  const statusTabs: { id: 'ALL' | ReadingStatus; label: string; count: number }[] = [
+    { id: 'ALL', label: t.bookmarks.all, count: countByStatus.ALL },
+    { id: 'READING', label: t.bookmarks.reading, count: countByStatus.READING },
+    { id: 'PLAN_TO_READ', label: t.bookmarks.planToRead, count: countByStatus.PLAN_TO_READ },
+    { id: 'COMPLETED', label: t.bookmarks.completed, count: countByStatus.COMPLETED },
+  ];
 
+  return (
+    <div
+      className="flex flex-col lg:flex-row h-[var(--view-h)] overflow-hidden max-w-[1600px] w-full mx-auto"
+      style={{ ['--spot' as string]: 'var(--ink-gold)' }}
+    >
+      <main className="flex-1 flex flex-col h-full overflow-y-auto px-3.5 sm:px-6 py-5 gap-4 pb-28 lg:pb-10">
+        {/* The reader's own file */}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 pb-2.5 border-b-2 border-[var(--ink)]">
+          <h2 className="masthead text-[clamp(1.1rem,2.4vw,1.5rem)] text-[var(--ink)]">
+            {t.bookmarks.title}
+          </h2>
+
+          <div className="flex items-center gap-2">
             {/* The library lives in localStorage, so a file the user keeps is
                 the only backup that exists. Native file input, no dependency. */}
             <button
               type="button"
               onClick={() => exportBookmarks(bookmarks)}
               disabled={bookmarkedIds.length === 0}
-              className="flex items-center gap-1 px-2 py-1 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-muted)] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className="stamp flex items-center gap-1.5 py-1 text-[10px] border-b-2 border-[var(--rule)] text-[var(--ink-soft)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors cursor-pointer disabled:opacity-35 disabled:pointer-events-none"
             >
               <Download className="w-3 h-3" />
               {t.bookmarks.export}
@@ -184,7 +193,7 @@ export function BookmarksView({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1 px-2 py-1 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-muted)] transition-colors cursor-pointer"
+              className="stamp flex items-center gap-1.5 py-1 text-[10px] border-b-2 border-[var(--rule)] text-[var(--ink-soft)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors cursor-pointer"
             >
               <Upload className="w-3 h-3" />
               {t.bookmarks.import}
@@ -199,89 +208,54 @@ export function BookmarksView({
                 e.target.value = '';
               }}
             />
-            {/* w-full: wraps to its own line instead of squeezing the status
-                pills in the row opposite. */}
-            {importError && (
-              <span className="w-full text-[10px] text-[#ff334b]">{importError}</span>
-            )}
-          </div>
-
-          {/* Reading Status Filter Pills */}
-          <div className="flex items-center gap-1 p-1 rounded-lg bg-[var(--bg-surface-raised)] border border-[var(--border-subtle)] overflow-x-auto text-[11px]">
-            <button
-              type="button"
-              onClick={() => setActiveFilter('ALL')}
-              className={cn(
-                'px-2.5 py-1 rounded-md transition-colors cursor-pointer whitespace-nowrap',
-                activeFilter === 'ALL'
-                  ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] font-bold shadow-xs border border-[var(--border-subtle)]'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              )}
-            >
-              {t.bookmarks.all} ({countByStatus.ALL})
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveFilter('READING')}
-              className={cn(
-                'flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors cursor-pointer whitespace-nowrap',
-                activeFilter === 'READING'
-                  ? 'bg-[#ff334b]/15 text-[#ff334b] font-bold border border-[#ff334b]/40 shadow-xs'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              )}
-            >
-              <BookOpen className="w-3 h-3 text-[#ff334b]" />
-              <span>{t.bookmarks.reading}</span>
-              {countByStatus.READING > 0 && <span className="opacity-75">({countByStatus.READING})</span>}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveFilter('PLAN_TO_READ')}
-              className={cn(
-                'flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors cursor-pointer whitespace-nowrap',
-                activeFilter === 'PLAN_TO_READ'
-                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold border border-amber-500/40 shadow-xs'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              )}
-            >
-              <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-              <span>{t.bookmarks.planToRead}</span>
-              {countByStatus.PLAN_TO_READ > 0 && <span className="opacity-75">({countByStatus.PLAN_TO_READ})</span>}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveFilter('COMPLETED')}
-              className={cn(
-                'flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors cursor-pointer whitespace-nowrap',
-                activeFilter === 'COMPLETED'
-                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-500/40 shadow-xs'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              )}
-            >
-              <CheckCircle className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-              <span>{t.bookmarks.completed}</span>
-              {countByStatus.COMPLETED > 0 && <span className="opacity-75">({countByStatus.COMPLETED})</span>}
-            </button>
           </div>
         </div>
 
-        {/* Content */}
+        {importError && (
+          <p className="stamp text-[9px] text-[var(--ink-vermilion)]">{importError}</p>
+        )}
+
+        {/* Status dividers */}
+        <nav className="flex items-stretch gap-4 sm:gap-6 overflow-x-auto border-b border-[var(--rule)]">
+          {statusTabs.map((tab) => {
+            const isActive = activeFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveFilter(tab.id)}
+                className={cn(
+                  'stamp figures flex items-center gap-1.5 pb-2 -mb-px text-[10px] whitespace-nowrap border-b-[3px] transition-colors cursor-pointer',
+                  isActive
+                    ? 'text-[var(--ink)] border-[var(--spot)]'
+                    : 'text-[var(--ink-faint)] border-transparent hover:text-[var(--ink)]'
+                )}
+              >
+                <span>{tab.label}</span>
+                <span className={cn('text-[9px]', isActive ? 'text-[var(--spot-text)]' : 'opacity-70')}>
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+
         {filteredComics.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 max-w-md mx-auto my-auto shadow-xs">
-            <Bookmark className="w-8 h-8 text-[var(--text-muted)] mb-3" />
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1 font-mono-data">
+          <div className="py-16 px-6 my-auto text-center border-y-2 border-[var(--ink)] max-w-lg mx-auto">
+            <p className="masthead text-2xl sm:text-3xl text-[var(--ink)] mb-2.5">
               {t.bookmarks.emptyTitle}
-            </h3>
-            <p className="text-xs text-[var(--text-secondary)] mb-5 leading-relaxed">
+            </p>
+            <p className="text-sm text-[var(--ink-soft)] leading-relaxed mb-6 max-w-[46ch] mx-auto">
               {t.bookmarks.emptyDesc}
             </p>
-            <Button variant="crimson" size="sm" onClick={onNavigateToCatalog}>
+            <button
+              type="button"
+              onClick={onNavigateToCatalog}
+              className="stamp inline-flex items-center gap-2 py-1.5 text-[11px] border-b-2 border-[var(--ink)] text-[var(--ink)] hover:border-[var(--spot)] hover:text-[var(--spot-text)] transition-colors cursor-pointer"
+            >
               <BookOpen className="w-3.5 h-3.5" />
               <span>{t.bookmarks.exploreCatalog}</span>
-            </Button>
+            </button>
           </div>
         ) : (
           <div className="flex-1 pb-8">
@@ -297,6 +271,11 @@ export function BookmarksView({
             />
           </div>
         )}
+
+        <Folio
+          section={t.nav.savedLibrary}
+          tally={`${filteredComics.length}/${bookmarkedComics.length}`}
+        />
       </main>
 
       {/* Inspector for selected bookmark */}

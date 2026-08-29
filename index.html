@@ -8,14 +8,52 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="alternate icon" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#0d0e12" />
+    <meta name="theme-color" content="#e4ddcd" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14120e" media="(prefers-color-scheme: dark)" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Akashic Dex" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
+    <!-- The display voice and the reading voice, both wanted on the first frame. -->
+    <link rel="preload" href="/fonts/anton-normal-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/archivo-normal-latin.woff2" as="font" type="font/woff2" crossorigin />
   </head>
-  <body class="bg-black text-white m-0 p-0 overflow-x-hidden">
+  <body>
+    <!--
+      DIRECTION CONTRACT — Weekly Anthology — seed ddfdd0df
+
+      THESIS: The catalog is this week's issue, not a dashboard. It refuses the
+      near-black card shell, the neon accent and the mono label — not the cover
+      grid, which is where this catalog's real content lives. Covers print as
+      mounted plates on paper. (Revised after the build: the user chose the
+      plate gallery over the ranked contents list an earlier draft shipped, and
+      a contract that still refused it would be describing a page nobody has.)
+
+      OWN-WORLD: Tinted pulp paper under a halftone dot screen, dense process
+      ink, one spot color per view. Anton for display, Archivo for everything
+      else, no monospace. Hairline rules instead of card shells; radius near
+      zero.
+
+      STORY: The reader lands mid-issue, reads a ranked table of contents where
+      every entry carries the editor's one-line reason, and leaves with a title.
+
+      FIRST VIEWPORT: Full-width masthead, issue line beneath it. Then the
+      editorial desk — one ruled prompt field. Then the plates: a keylined
+      cover grid, each entry carrying its title, the one-line reason it is
+      here, and a credit line on a hairline. No card shells, no rank numerals.
+
+      FORM: Weekly anthology periodical, candidate 5 of the grounded list,
+      seed ddfdd0df.
+
+      SIGNATURE INTERACTION: Plates strike the sheet as they arrive, staggered;
+      the AI search runs a visible three-station press progression (retrieving,
+      ranking, printing) instead of a spinner.
+
+      FINISH: unreviewed and undocumented is unfinished; this build ends with
+      the finish review, the verdict, DESIGN.md, and every shipping raster
+      carrying its provenance.
+    -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

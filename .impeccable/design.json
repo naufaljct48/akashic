@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-29T00:00:00.000Z",
+  "title": "Design System: Akashic Dex",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Pulp Stock",
+        "canonical": "#e4ddcd",
+        "nightEdition": "#14120e",
+        "tonalRamp": ["#241f16", "#3d3527", "#574b38", "#71634b", "#8d7f66", "#ab9f88", "#c9c0ac", "#efe9dc"]
+      },
+      "paper-sheet": {
+        "role": "neutral",
+        "displayName": "Laid Sheet",
+        "canonical": "#efe9dc",
+        "nightEdition": "#1d1a15",
+        "tonalRamp": ["#2a251b", "#443c2d", "#5e5440", "#796d54", "#95886c", "#b2a689", "#cfc5ab", "#f6f2e9"]
+      },
+      "paper-deep": {
+        "role": "neutral",
+        "displayName": "Gutter",
+        "canonical": "#d3cab6",
+        "nightEdition": "#0c0a08",
+        "tonalRamp": ["#211c14", "#392f22", "#52462f", "#6c5d43", "#887959", "#a59672", "#c3b590", "#e3d9c2"]
+      },
+      "paper-plate": {
+        "role": "neutral",
+        "displayName": "Bare Plate",
+        "canonical": "#cfc6b2",
+        "nightEdition": "#262119",
+        "tonalRamp": ["#1f1a13", "#362f21", "#4e442f", "#685b3f", "#83764f", "#a09267", "#bdaf85", "#dcd2ba"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Process Black",
+        "canonical": "#16130f",
+        "nightEdition": "#ece5d5",
+        "tonalRamp": ["#16130f", "#2c2620", "#443b31", "#5c5143", "#766957", "#91836d", "#ada084", "#cabf9f"]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Soft Ink",
+        "canonical": "#4c443a",
+        "nightEdition": "#b0a793",
+        "tonalRamp": ["#1a1713", "#302a24", "#463d34", "#5d5246", "#756859", "#8d7f6d", "#a79881", "#c1b296"]
+      },
+      "ink-faint": {
+        "role": "neutral",
+        "displayName": "Faint Ink",
+        "canonical": "#665c4d",
+        "nightEdition": "#8a8171",
+        "tonalRamp": ["#1c1915", "#332e26", "#4a4238", "#62574a", "#7b6e5c", "#94856f", "#ae9d84", "#c9b69a"]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Hairline Rule",
+        "canonical": "#b0a691",
+        "nightEdition": "#3a352b",
+        "tonalRamp": ["#1e1a14", "#352f24", "#4d4434", "#665b45", "#807356", "#9b8d69", "#b7a87f", "#d4c497"]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Heavy Rule",
+        "canonical": "#6f6555",
+        "nightEdition": "#5c5344",
+        "tonalRamp": ["#1d1a15", "#332e26", "#4a4337", "#615849", "#7a6f5c", "#94876f", "#aea083", "#c9ba98"]
+      },
+      "ink-magenta": {
+        "role": "primary",
+        "displayName": "Editorial Magenta",
+        "canonical": "#c1005c",
+        "nightEdition": "#e04a86",
+        "tonalRamp": ["#3d0020", "#5f0031", "#830043", "#a80055", "#c1005c", "#e0357c", "#f0779f", "#fbc0d3"]
+      },
+      "ink-vermilion": {
+        "role": "secondary",
+        "displayName": "Vermilion",
+        "canonical": "#c33800",
+        "nightEdition": "#d55a2a",
+        "tonalRamp": ["#3d1200", "#601c00", "#842700", "#a83100", "#c33800", "#e15f2b", "#ee9068", "#f8c9b3"]
+      },
+      "ink-cyan": {
+        "role": "secondary",
+        "displayName": "Press Cyan",
+        "canonical": "#00688f",
+        "nightEdition": "#2b87ab",
+        "tonalRamp": ["#00202d", "#003347", "#004761", "#005b7b", "#00688f", "#2b8cb3", "#66b1d0", "#b3d9e9"]
+      },
+      "ink-green": {
+        "role": "secondary",
+        "displayName": "Press Green",
+        "canonical": "#0b6b45",
+        "nightEdition": "#2a8d61",
+        "tonalRamp": ["#032117", "#063725", "#084d33", "#0a5e3e", "#0b6b45", "#2a8d61", "#63b48e", "#b5dcc8"]
+      },
+      "ink-gold": {
+        "role": "secondary",
+        "displayName": "Foil Gold",
+        "canonical": "#7d5100",
+        "nightEdition": "#a67a1f",
+        "tonalRamp": ["#291a00", "#3f2900", "#573800", "#6d4700", "#7d5100", "#a67a1f", "#c9a353", "#e8d3a1"]
+      },
+      "ink-blue": {
+        "role": "secondary",
+        "displayName": "Press Blue",
+        "canonical": "#2f3f96",
+        "nightEdition": "#6b79cf",
+        "tonalRamp": ["#0e1330", "#17204e", "#212c6c", "#293785", "#2f3f96", "#5b69c0", "#8f9adb", "#c8ceef"]
+      }
+    },
+    "typographyMeta": {
+      "masthead": { "displayName": "Masthead", "purpose": "Page-one wordmark at issue scale, uppercase, overprinted with its own ghost. Front page only." },
+      "numeral": { "displayName": "Rank Numeral", "purpose": "Table-of-contents rank set in its own column at plate scale. Only where order is real information." },
+      "headline": { "displayName": "Spread Headline", "purpose": "The entry spread's title and empty-state lines." },
+      "title": { "displayName": "Entry Title", "purpose": "Titles in the contents list, clamped to two lines." },
+      "body": { "displayName": "Body", "purpose": "Standfirsts and synopses, measure capped 62-68ch." },
+      "caption": { "displayName": "Blurb", "purpose": "The editor's one-line reason under each entry, two lines max." },
+      "stamp": { "displayName": "Stamp", "purpose": "The whole label layer: section names, issue line, quota, credits, format tags, key hints." }
+    },
+    "shadows": [
+      { "name": "plate-shadow", "value": "0 10px 22px -14px rgba(22,19,15,0.55)", "purpose": "A plate resting on the sheet. Night run: 0 10px 24px -14px rgba(0,0,0,0.8)." },
+      { "name": "lift-shadow", "value": "0 22px 48px -18px rgba(22,19,15,0.5)", "purpose": "Overlapping surfaces only - the finder panel and the mobile bottom-sheet spread. Dropped when the spread docks at lg. Night run: 0 24px 54px -18px rgba(0,0,0,0.85)." }
+    ],
+    "motion": [
+      { "name": "ink-strike", "value": "420ms cubic-bezier(0.16, 1, 0.3, 1) backwards", "purpose": "The single authored entrance: an arriving row lands from a -3px/5px registration offset with 1.5px blur clearing. Staggered 28ms per row, capped at the 14th." },
+      { "name": "press-run", "value": "1.1s ease-in-out infinite", "purpose": "Three stations (retrieving, ranking, printing) cycling at 0.18s offsets while the AI works. Replaces the spinner." },
+      { "name": "press-sweep", "value": "1.1s cubic-bezier(0.65, 0, 0.35, 1) infinite", "purpose": "A 2px roller running under a field that is fetching." },
+      { "name": "press-shimmer", "value": "1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite", "purpose": "Skeleton ground over --paper-plate." },
+      { "name": "ink-pulse", "value": "2s ease-in-out infinite", "purpose": "Wet ink on a live marker." },
+      { "name": "edition-swap", "value": "background-color 180ms ease, color 180ms ease", "purpose": "The press run changing between day and night editions." },
+      { "name": "reduced-motion", "value": "prefers-reduced-motion: reduce -> animation: none", "purpose": "Every animation above is disabled; ink-strike resets to opacity 1, no transform, no blur." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "toc-split", "value": "58rem (container query on the contents list, not the viewport)" },
+      { "name": "measure", "value": "1600px max page width" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Solid ink on paper. The default printed control; presses a hair into the sheet.",
+      "html": "<button class=\"ds-btn-primary\">ASK</button>",
+      "css": ".ds-btn-primary { font-family: 'Archivo', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.11em; font-size: 11px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--ink, #16130f); color: var(--paper, #e4ddcd); border: 1px solid var(--ink, #16130f); border-radius: 0; cursor: pointer; transition: background-color 150ms, border-color 150ms, transform 150ms; } .ds-btn-primary:hover { background: var(--ink-soft, #4c443a); border-color: var(--ink-soft, #4c443a); } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 2px solid var(--spot, #c1005c); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.4; pointer-events: none; }"
+    },
+    {
+      "name": "Spot Button",
+      "kind": "button",
+      "refersTo": "button-spot",
+      "description": "Printed in the section's own ink. For the action that belongs to the department (save, submit).",
+      "html": "<button class=\"ds-btn-spot\">SAVE</button>",
+      "css": ".ds-btn-spot { font-family: 'Archivo', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.11em; font-size: 11px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--spot, #c1005c); color: var(--on-spot, #e4ddcd); border: 1px solid var(--spot, #c1005c); border-radius: 0; cursor: pointer; transition: opacity 150ms, transform 150ms; } .ds-btn-spot:hover { opacity: 0.9; } .ds-btn-spot:active { transform: translateY(1px); } .ds-btn-spot:focus-visible { outline: 2px solid var(--ink, #16130f); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A laid sheet with a hairline edge that darkens to full ink on hover.",
+      "html": "<button class=\"ds-btn-secondary\">FILTERS</button>",
+      "css": ".ds-btn-secondary { font-family: 'Archivo', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.11em; font-size: 11px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--paper-sheet, #efe9dc); color: var(--ink, #16130f); border: 1px solid var(--rule, #b0a691); border-radius: 0; cursor: pointer; transition: border-color 150ms, transform 150ms; } .ds-btn-secondary:hover { border-color: var(--ink, #16130f); } .ds-btn-secondary:active { transform: translateY(1px); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--spot, #c1005c); outline-offset: 2px; }"
+    },
+    {
+      "name": "Format Badge",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "A printed tag: hairline rule, square corners, tracked caps. Format variants print in their origin ink so the reader learns the source by colour.",
+      "html": "<span class=\"ds-badge ds-badge-manhwa\">MANHWA</span> <span class=\"ds-badge ds-badge-manga\">MANGA</span> <span class=\"ds-badge ds-badge-trope\">MURIM</span>",
+      "css": ".ds-badge { font-family: 'Archivo', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.11em; font-size: 9px; line-height: 1; display: inline-flex; align-items: center; gap: 4px; padding: 3px 6px; border: 1px solid var(--rule, #b0a691); color: var(--ink-soft, #4c443a); background: transparent; border-radius: 0; user-select: none; transition: color 150ms, border-color 150ms; } .ds-badge-manhwa { border-color: var(--ink-blue, #2f3f96); color: var(--ink-blue, #2f3f96); } .ds-badge-manga { border-color: var(--ink-vermilion, #c33800); color: var(--ink-vermilion, #c33800); } .ds-badge-trope:hover { border-color: var(--ink, #16130f); color: var(--ink, #16130f); }"
+    },
+    {
+      "name": "Ruled Field",
+      "kind": "input",
+      "refersTo": "field-ruled",
+      "description": "The editorial desk. A 5px solid spot bar over a field ruled like a submission form; the reader writes on a line, never in a box.",
+      "html": "<form class=\"ds-desk\"><div class=\"ds-desk-bar\"></div><div class=\"ds-desk-field\"><input class=\"ds-desk-input\" type=\"text\" placeholder=\"Ask AI, or search a title or trope\" /><button class=\"ds-desk-submit\">ASK <svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"square\"><polyline points=\"9 10 4 15 9 20\"/><path d=\"M20 4v7a4 4 0 0 1-4 4H4\"/></svg></button></div></form>",
+      "css": ".ds-desk { display: block; } .ds-desk-bar { height: 5px; background: var(--spot, #c1005c); } .ds-desk-field { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 2px solid var(--ink, #16130f); transition: border-color 150ms ease; } .ds-desk-field:focus-within { border-bottom-color: var(--spot, #c1005c); } .ds-desk-input { flex: 1; background: transparent; border: none; outline: none; font-family: 'Archivo', sans-serif; font-size: 18px; color: var(--ink, #16130f); caret-color: var(--spot, #c1005c); } .ds-desk-input::placeholder { color: var(--ink-faint, #665c4d); } .ds-desk-submit { font-family: 'Archivo', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.11em; font-size: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--ink, #16130f); color: var(--paper, #e4ddcd); border: none; border-radius: 0; cursor: pointer; } .ds-desk-submit:active { transform: translateY(1px); } .ds-desk-submit:focus-visible { outline: 2px solid var(--spot, #c1005c); outline-offset: 2px; }"
+    },
+    {
+      "name": "Section Navigation",
+      "kind": "nav",
+      "refersTo": "masthead-band",
+      "description": "Sections named, not iconified. Each tab sets its own --spot, so the 3px active rule prints in that department's ink.",
+      "html": "<nav class=\"ds-nav\"><button class=\"ds-nav-tab ds-nav-active\" style=\"--spot: #c1005c\">DISCOVERY</button><button class=\"ds-nav-tab\" style=\"--spot: #2f3f96\">CATALOG</button><button class=\"ds-nav-tab\" style=\"--spot: #7d5100\">BOOKMARKS <span class=\"ds-nav-count\">7</span></button></nav>",
+      "css": ".ds-nav { display: flex; align-items: stretch; gap: 24px; background: var(--paper, #e4ddcd); padding: 14px 0 0; border-bottom: 2px solid var(--ink, #16130f); } .ds-nav-tab { font-family: 'Archivo', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.11em; font-size: 11px; display: inline-flex; align-items: center; gap: 6px; padding: 0 4px 10px; background: none; border: none; border-bottom: 3px solid transparent; color: var(--ink-faint, #665c4d); cursor: pointer; transition: color 150ms; } .ds-nav-tab:hover { color: var(--ink, #16130f); } .ds-nav-active { color: var(--ink, #16130f); border-bottom-color: var(--spot); } .ds-nav-count { font-variant-numeric: tabular-nums; font-size: 9px; line-height: 1; padding: 2px 4px; background: var(--spot); color: var(--paper, #e4ddcd); }"
+    },
+    {
+      "name": "Contents Entry",
+      "kind": "custom",
+      "refersTo": "badge",
+      "description": "The signature row. Rank numeral at plate scale in its own column, cover plate, title, the editor's one-line reason, credits. No shell - a hairline is what separates one entry from the next.",
+      "html": "<ol class=\"ds-toc\"><li class=\"ds-entry\"><span class=\"ds-entry-rank\">2</span><div class=\"ds-entry-plate\"></div><div class=\"ds-entry-body\"><h3 class=\"ds-entry-title\">Solo Leveling</h3><p class=\"ds-entry-blurb\"><span class=\"ds-entry-why\">WHY</span>In a world where awakened beings called \"Hunters\" must battle deadly monsters.</p><p class=\"ds-entry-credits\"><span>MANHWA</span><span>8.4</span><span>201 CH</span><span>KR &middot; 2018</span></p></div></li></ol>",
+      "css": ".ds-toc { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule, #b0a691); } .ds-entry { display: flex; align-items: stretch; gap: 16px; padding: 12px 4px 12px 0; border-bottom: 1px solid var(--rule, #b0a691); cursor: pointer; } .ds-entry-rank { font-family: 'Anton', sans-serif; font-variant-numeric: tabular-nums; font-size: clamp(2.6rem, 7vw, 6rem); line-height: 0.78; color: var(--spot, #c1005c); align-self: flex-start; min-width: 1.1em; text-align: center; } .ds-entry:hover .ds-entry-title { color: color-mix(in oklab, var(--spot, #c1005c) 76%, var(--ink, #16130f)); } .ds-entry-plate { width: 72px; aspect-ratio: 3 / 4; background: var(--paper-plate, #cfc6b2); align-self: flex-start; flex: none; } .ds-entry-body { min-width: 0; max-width: 62ch; } .ds-entry-title { font-family: 'Archivo', sans-serif; font-weight: 600; font-size: 16px; line-height: 1.25; margin: 0; color: var(--ink, #16130f); transition: color 150ms; } .ds-entry-blurb { font-size: 12px; line-height: 1.35; color: var(--ink-soft, #4c443a); margin: 6px 0 0; max-width: 27rem; } .ds-entry-why { font-family: 'Archivo', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.11em; font-size: 9px; margin-right: 6px; color: color-mix(in oklab, var(--spot, #c1005c) 76%, var(--ink, #16130f)); } .ds-entry-credits { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 8px 0 0; font-family: 'Archivo', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.11em; font-variant-numeric: tabular-nums; font-size: 10px; color: var(--ink-faint, #665c4d); }"
+    },
+    {
+      "name": "Press Stations",
+      "kind": "custom",
+      "refersTo": "field-ruled",
+      "description": "The spinner replacement. Three stations light in sequence while the query retrieves, ranks and prints.",
+      "html": "<div class=\"ds-press\" role=\"status\"><span class=\"ds-press-stage\">RETRIEVING</span><span class=\"ds-press-stage\">RANKING</span><span class=\"ds-press-stage\">PRINTING</span></div>",
+      "css": ".ds-press { display: flex; align-items: center; gap: 12px; padding: 8px 0; font-family: 'Archivo', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.11em; font-size: 9px; color: color-mix(in oklab, var(--spot, #c1005c) 76%, var(--ink, #16130f)); } @keyframes ds-press-run { 0%, 100% { opacity: 0.28; } 50% { opacity: 1; } } .ds-press-stage { animation: ds-press-run 1.1s ease-in-out infinite; } .ds-press-stage:nth-child(2) { animation-delay: 0.18s; } .ds-press-stage:nth-child(3) { animation-delay: 0.36s; } @media (prefers-reduced-motion: reduce) { .ds-press-stage { animation: none; } }"
+    },
+    {
+      "name": "Issue Strip",
+      "kind": "custom",
+      "refersTo": "issue-strip",
+      "description": "The reversed band under the masthead saying which edition you are holding. Issue number is the ISO week, read from the calendar.",
+      "html": "<div class=\"ds-strip\"><div class=\"ds-strip-left\"><span>WEEKLY EDITION</span><span class=\"ds-strip-sep\">/</span><span>NO. 35</span><span class=\"ds-strip-sep\">/</span><span>29 AUG 2026</span></div><div><span>6,600+ TITLES ON FILE</span></div></div>",
+      "css": ".ds-strip { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 26px; padding: 0 24px; background: var(--ink, #16130f); color: var(--paper, #e4ddcd); font-family: 'Archivo', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.11em; font-variant-numeric: tabular-nums; font-size: 9px; white-space: nowrap; overflow: hidden; } .ds-strip-left { display: flex; align-items: center; gap: 12px; } .ds-strip-sep { opacity: 0.4; }"
+    },
+    {
+      "name": "Press Mark",
+      "kind": "custom",
+      "refersTo": "masthead-band",
+      "description": "The publisher's colophon: an inked plate with the A knocked out so the paper reads through, and the registration ticks a press uses to align one plate to the next.",
+      "html": "<svg class=\"ds-mark\" width=\"32\" height=\"32\" viewBox=\"0 0 32 32\" fill=\"none\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"26\" height=\"26\" fill=\"currentColor\"/><path d=\"M16 7.5L23.4 25h-4.2l-1.15-3.1h-3.9L12.8 25H8.6L16 7.5Zm0 6.6-1.25 3.5h2.5L16 14.1Z\" fill=\"var(--paper, #e4ddcd)\"/><path d=\"M0 16h3M29 16h3M16 0v3M16 29v3\" stroke=\"var(--spot, #c1005c)\" stroke-width=\"1.5\"/></svg>",
+      "css": ".ds-mark { color: var(--ink, #16130f); flex: none; user-select: none; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "This Week's Issue",
+    "overview": "The product is printed, not rendered. Every decision derives from a cheap weekly anthology run off a fast press: tinted pulp stock that is never white, dense process ink, one spot color per section, and hairline rules doing the work that borders and card shells used to do. The reader lands mid-issue - masthead, issue line, editorial desk, then the running order - and leaves with a title.\n\nThe world is materially honest about its press. A halftone dot screen rides over the entire app on body::after (3px grid, 0.6px dots) so the ground never reads as a flat CSS colour field. The wordmark overprints itself: one ghost of the same word 1.5px off in the spot ink, sitting behind the black, the way plates land out of register. The press mark carries registration ticks. These are the material's own devices, used natively, not decoration bolted onto a dashboard.\n\nTwo editions, not a theme toggle. The day run is ink on pulp; the night run is the reverse press run - the paper becomes the ink and the six process colours are re-mixed to full strength for dark stock, each holding 4.5:1 or better against it. What this world refuses, explicitly and by name: the near-black grid of identical cover cards with one neon accent, the metric tile, the monospace \"technical\" costume, and the spinner. Where an old build had a magenta #ff334b accent hardcoded on every surface, nothing hardcodes an accent now.",
+    "keyCharacteristics": [
+      "Tinted pulp ground under a permanent halftone screen; no white, no pure black",
+      "One spot ink per view, inherited and re-derived per element",
+      "Zero radius everywhere; hierarchy from scale and rules, never from shells",
+      "Anton for display at size, Archivo for everything else, no monospace",
+      "Tabular figures app-wide (font-feature-settings: 'tnum' 1 on body)",
+      "One authored entrance gesture: plates striking the sheet, staggered"
+    ],
+    "rules": [
+      { "name": "The One Spot Rule", "body": "A section sets --spot once on its own container; every rule, mark, tab, badge and numeral inside it reads from that value. Nothing below the section container hardcodes an accent, and no view shows two spots at once.", "section": "colors" },
+      { "name": "The Derived-Not-Declared Rule", "body": "Never write a spot-tinted colour literally. Use --spot-text for small type, --spot-wash for a fill, --spot-rule for a tinted rule. A custom property resolves against the element that declares it, which is why these are declared on *.", "section": "colors" },
+      { "name": "The No Palette Rule", "body": "Components write bg-[var(--paper)]-style values only. A Tailwind palette colour breaks one of the two editions on contact.", "section": "colors" },
+      { "name": "The Three Voices Rule", "body": "Anton, Archivo, and Archivo-as-stamp. No fourth face, no monospace anywhere in the product.", "section": "typography" },
+      { "name": "The Anton-At-Size Rule", "body": "The display face appears at masthead, numeral, or spread-title scale and nowhere else. Anton below ~18px is a label pretending to be display; use a stamp.", "section": "typography" },
+      { "name": "The Named-Thing Rule", "body": "A stamp label names something the issue actually publishes - a section, an issue number, a quota, a format, a source credit. It is not a category invented to sit above a title.", "section": "typography" },
+      { "name": "The Tabular Rule", "body": "Anything that lines up in a column - counts, scores, chapters, the rank - carries tabular figures. body sets 'tnum' 1 globally; .figures restates it where the element sets its own font.", "section": "typography" },
+      { "name": "The Overlay-Only Shadow Rule", "body": "A shadow is permitted on exactly one class of thing: a surface that overlaps the page (modal, bottom sheet). At lg the inspector docks and drops its shadow. In-flow content never carries one.", "section": "elevation" },
+      { "name": "The Screen Rides On Top Rule", "body": "The halftone lives on body::after at z-index 9999, fixed and pointer-events: none. Painted under the app shell it is covered by the shell's own opaque ground and the material disappears; it must stay above everything.", "section": "elevation" },
+      { "name": "The No Shell Rule", "body": "If something must feel separate it gets a rule or a paper shift. Never a rounded box with a border and a shadow. A card shell is the topology this world was built to refuse; retinting one would not have changed it.", "section": "shapes" },
+      { "name": "The One Gesture Rule", "body": "Only arriving content animates on entrance. Nothing else on the page moves in, so the strike reads as the page's single gesture instead of decor.", "section": "components" }
+    ],
+    "dos": [
+      "Do set --spot once, on a view's own container, and let everything inside inherit it.",
+      "Do use --spot-text for any spot-coloured type below display size; full-strength spot on small text fails contrast on pulp.",
+      "Do separate things with a rule (1px hairline, 2px ink) or a paper shift, and let scale carry hierarchy.",
+      "Do write bg-[var(--paper)]-style values; both editions depend on it.",
+      "Do keep authored classes inside @layer components - unlayered they outrank every Tailwind utility placed on the same element, silently.",
+      "Do close every view with a folio, and let the issue number come from the ISO week rather than a typed constant.",
+      "Do set counts, scores and ranks in tabular figures.",
+      "Do replace any spinner with the press bar or the three stations."
+    ],
+    "donts": [
+      "Don't add corner radius. The system has one radius step and it is 0.",
+      "Don't wrap content in a bordered, shadowed box; that shell is the exact topology this world refuses.",
+      "Don't put two spot colours in one view, or hardcode an accent below the view container.",
+      "Don't introduce a fourth type face, and never monospace.",
+      "Don't use pure white or pure black; the ground is tinted stock in both editions.",
+      "Don't apply a shadow to in-flow content - shadows belong to overlapping surfaces only.",
+      "Don't paint the halftone screen below the app shell; it must ride above at z-index 9999.",
+      "Don't print rank numerals on an unordered list; a numeral with no ranking behind it is decoration."
+    ]
+  }
+}

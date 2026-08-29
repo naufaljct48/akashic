@@ -2,10 +2,15 @@ import React from 'react';
 import { cn } from '@/lib/utils/cn';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'crimson';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'spot';
   size?: 'sm' | 'md' | 'lg' | 'icon';
 }
 
+/**
+ * A printed control. Solid ink or a ruled field — no radius past 2px, no
+ * gradient, no shadow. Press feedback is the ink setting: it darkens and drops
+ * a hair, the way a stamp meets paper.
+ */
 export function Button({
   className,
   variant = 'primary',
@@ -15,26 +20,23 @@ export function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    'inline-flex items-center justify-center font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none cursor-pointer active:scale-[0.98] select-none';
+    'stamp inline-flex items-center justify-center border transition-[background-color,color,border-color,transform] duration-150 ' +
+    'active:translate-y-px disabled:opacity-40 disabled:pointer-events-none cursor-pointer select-none';
 
   const sizeStyles = {
-    sm: 'text-xs px-2.5 py-1.5 rounded-lg gap-1.5',
-    md: 'text-sm px-3.5 py-2 rounded-xl gap-2',
-    lg: 'text-base px-5 py-2.5 rounded-xl gap-2.5',
-    icon: 'p-2 rounded-lg',
+    sm: 'text-[10px] px-2.5 py-1.5 gap-1.5',
+    md: 'text-[11px] px-3.5 py-2 gap-2',
+    lg: 'text-xs px-5 py-2.5 gap-2.5',
+    icon: 'p-2 gap-0',
   };
 
   const variantStyles = {
-    primary:
-      'bg-[var(--text-primary)] text-[var(--bg-surface)] hover:opacity-90 border border-transparent shadow-xs font-semibold',
+    primary: 'bg-[var(--ink)] text-[var(--paper)] border-[var(--ink)] hover:bg-[var(--ink-soft)] hover:border-[var(--ink-soft)]',
+    spot: 'bg-[var(--spot)] text-[var(--on-spot)] border-[var(--spot)] hover:opacity-90',
     secondary:
-      'bg-[var(--bg-surface-raised)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-surface-hover)] hover:border-[var(--border-muted)]',
+      'bg-[var(--paper-sheet)] text-[var(--ink)] border-[var(--rule)] hover:border-[var(--ink)]',
     ghost:
-      'bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-raised)]',
-    danger:
-      'bg-red-950/80 text-red-200 border border-red-800/60 hover:bg-red-900',
-    crimson:
-      'bg-[#ff334b] text-white hover:bg-[#e0263c] border border-transparent shadow-xs font-semibold',
+      'bg-transparent text-[var(--ink-soft)] border-transparent hover:text-[var(--ink)] hover:border-[var(--rule)]',
   };
 
   return (

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Search, Sparkles, X, CornerDownLeft, Zap, Dices } from 'lucide-react';
+import { CornerDownLeft, Dices, X } from 'lucide-react';
 import { useI18n } from '@/core/i18n/context';
 import type { ComicType } from '@/core/types/comic';
 import { cn } from '@/lib/utils/cn';
@@ -19,6 +19,15 @@ interface CommandSearchBarProps {
   isRollingGacha?: boolean;
 }
 
+/**
+ * The editorial desk.
+ *
+ * One field, ruled like a submission form, with a solid spot bar across its
+ * head — that bar is what marks this as the input you can talk to, a job the
+ * old build gave to a rotating spectrum glow. While the query is out, the desk
+ * shows its three stations working instead of a spinner, because the reader is
+ * waiting on a process, not on an indeterminate wait.
+ */
 export function CommandSearchBar({
   query,
   onQueryChange,
@@ -57,133 +66,136 @@ export function CommandSearchBar({
     }
   };
 
+  const quotaSpent = maxRateLimit - rateLimitRemaining;
+
   return (
-    <div className="w-full flex flex-col gap-3">
-      {/*
-        Search Input Bar (Wrapped in Form for 100% reliable submit).
+    <section className="w-full flex flex-col">
+      {/* The desk */}
+      <form onSubmit={handleFormSubmit} className="relative">
+        {/* The spot rule: this is the field that answers in sentences. */}
+        <div className="h-[5px] bg-[var(--spot)]" aria-hidden />
 
-        The extra wrapper is load-bearing: `.ai-prompt-ring` paints its rotating
-        spectrum from a `z-index: -1` pseudo-element, which sits *above* its own
-        element's background but below a child's. So the ring needs a
-        transparent parent and the opaque field as a child — putting the class
-        straight on the form would flood the input with the gradient.
-      */}
-      <div className="ai-prompt-ring rounded-xl">
-      <form
-        onSubmit={handleFormSubmit}
-        className="relative flex items-center rounded-xl bg-[var(--input-bg)] border border-[var(--border-subtle)] transition-all shadow-xs"
-      >
-        <div className="pl-3.5 pr-2 text-[var(--text-muted)] flex items-center shrink-0">
-          {isLoading ? (
-            <Sparkles className="w-4 h-4 text-[#ff334b] animate-spin" />
-          ) : (
-            <Search className="w-4 h-4 text-[var(--text-muted)]" />
-          )}
-        </div>
+        <div className="field-ruled flex items-center gap-2 sm:gap-3 py-3">
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            placeholder={t.search.placeholder}
+            aria-label={t.search.ask}
+            className="w-full bg-transparent text-base sm:text-lg text-[var(--ink)] placeholder-[var(--ink-faint)] focus:outline-none"
+          />
 
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(e) => onQueryChange(e.target.value)}
-          placeholder={t.search.placeholder}
-          className="w-full bg-transparent py-3 pr-24 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none"
-        />
-
-        {/* Right Actions inside search */}
-        <div className="absolute right-2 flex items-center gap-1.5">
           {query && (
             <button
               type="button"
               onClick={() => onQueryChange('')}
-              className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-raised)] transition-colors cursor-pointer"
-              title="Clear input"
+              className="p-1 text-[var(--ink-faint)] hover:text-[var(--ink)] transition-colors cursor-pointer shrink-0"
+              aria-label={t.search.resetQuery}
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           )}
 
           <button
             type="submit"
             disabled={!query.trim() || isLoading}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#ff334b] hover:bg-[#e0263c] text-white text-xs font-mono-data font-semibold transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none shadow-xs"
+            className="stamp flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-[var(--ink)] text-[var(--paper)] text-[10px] transition-opacity cursor-pointer disabled:opacity-25 disabled:pointer-events-none shrink-0 active:translate-y-px"
           >
-            <span>{t.search.ask}</span>
+            <span className="hidden sm:inline">{t.search.ask}</span>
             <CornerDownLeft className="w-3 h-3" />
           </button>
         </div>
+
+        {/* The press, running. */}
+        {isLoading && (
+          <div
+            className="stamp flex items-center gap-3 py-2 text-[9px] text-[var(--spot-text)]"
+            role="status"
+          >
+            <span className="press-stage">{t.press.retrieving}</span>
+            <span className="press-stage">{t.press.ranking}</span>
+            <span className="press-stage">{t.press.printing}</span>
+            <span className="ml-auto normal-case tracking-normal text-[10px] text-[var(--ink-faint)]">
+              {t.search.searching}
+            </span>
+          </div>
+        )}
       </form>
-      </div>
 
-      {/* Control Strip: Format Filters + Preset Chips + Quota */}
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        {/* Format Selectors */}
-        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--bg-surface-raised)] border border-[var(--border-subtle)]">
-          {(['ALL', 'MANHWA', 'MANGA', 'MANHUA'] as const).map((tType) => (
-            <button
-              key={tType}
-              type="button"
-              onClick={() => onTypeChange(tType)}
-              className={cn(
-                'px-2.5 py-1 rounded-md font-mono-data text-[11px] font-medium transition-colors cursor-pointer',
-                selectedType === tType
-                  ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs border border-[var(--border-subtle)] font-bold'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              )}
-            >
-              {tType === 'ALL' ? t.common.all : tType}
-            </button>
-          ))}
-        </div>
+      {/* The control strip, set as a printed footer under the desk */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pt-2.5">
+        <div className="flex items-center gap-4">
+          {/* Format */}
+          <div className="flex items-stretch">
+            {(['ALL', 'MANHWA', 'MANGA', 'MANHUA'] as const).map((tType) => (
+              <button
+                key={tType}
+                type="button"
+                onClick={() => onTypeChange(tType)}
+                className={cn(
+                  'stamp px-2 sm:px-2.5 py-1 text-[9px] border-b-2 transition-colors cursor-pointer',
+                  selectedType === tType
+                    ? 'text-[var(--ink)] border-[var(--ink)]'
+                    : 'text-[var(--ink-faint)] border-transparent hover:text-[var(--ink)]'
+                )}
+              >
+                {tType === 'ALL' ? t.common.all : tType}
+              </button>
+            ))}
+          </div>
 
-        {/* Preset Starter Prompts Chips */}
-        <div className="hidden lg:flex items-center gap-1.5 overflow-x-auto max-w-xl">
-          {t.starterPrompts.map((item) => (
-            <button
-              key={item.title}
-              type="button"
-              onClick={() => {
-                onQueryChange(item.prompt);
-                onSubmit(item.prompt);
-              }}
-              className="px-2.5 py-1 rounded-md bg-[var(--bg-surface-raised)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-[11px] transition-colors truncate max-w-[180px] cursor-pointer"
-              title={item.prompt}
-            >
-              {item.title}
-            </button>
-          ))}
-        </div>
-
-        {/* Surprise Me / Gacha Button & Quota Counter */}
-        <div className="flex items-center gap-2">
           {onSurpriseMe && (
             <button
               type="button"
               onClick={onSurpriseMe}
               disabled={isRollingGacha}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 dark:bg-gradient-to-r dark:from-amber-500/15 dark:via-[#ff334b]/15 dark:to-purple-500/15 dark:hover:from-amber-500/25 dark:hover:via-[#ff334b]/25 dark:hover:to-purple-500/25 border border-amber-500/50 text-amber-800 dark:text-amber-300 hover:text-amber-950 dark:hover:text-white font-mono-data text-[11px] font-bold transition-all cursor-pointer shadow-xs active:scale-95 group disabled:opacity-50"
+              className="stamp flex items-center gap-1.5 py-1 text-[9px] whitespace-nowrap border-b-2 border-[var(--rule)] text-[var(--ink-soft)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors cursor-pointer disabled:opacity-40"
               title={t.gacha.tooltip}
             >
-              <Dices
-                className={cn(
-                  'w-3.5 h-3.5 text-amber-700 dark:text-amber-400 group-hover:rotate-180 transition-transform duration-500',
-                  isRollingGacha && 'animate-spin text-[#ff334b]'
-                )}
-              />
+              <Dices className={cn('w-3.5 h-3.5', isRollingGacha && 'animate-spin')} />
               <span>{isRollingGacha ? t.gacha.rolling : t.gacha.surpriseMe}</span>
             </button>
           )}
+        </div>
 
-          {/* Quota Counter */}
-          <div className="flex items-center gap-1 text-[11px] text-[var(--text-muted)] font-mono-data">
-            <Zap className="w-3 h-3 text-[#ff334b]" />
-            <span>
-              {t.search.quota}: <strong className="text-[var(--text-primary)]">{rateLimitRemaining}</strong>/
-              {maxRateLimit}
-            </span>
-          </div>
+        {/* Quota, printed as a ration rather than a metric tile. */}
+        <div className="stamp figures flex items-center gap-2 text-[9px] text-[var(--ink-faint)]">
+          <span className="flex items-center gap-[3px]" aria-hidden>
+            {Array.from({ length: maxRateLimit }).map((_, i) => (
+              <span
+                key={i}
+                className={cn(
+                  'w-[3px] h-3',
+                  i < quotaSpent ? 'bg-[var(--rule)]' : 'bg-[var(--spot)]'
+                )}
+              />
+            ))}
+          </span>
+          <span>
+            {rateLimitRemaining}/{maxRateLimit} {t.search.quota}
+          </span>
         </div>
       </div>
-    </div>
+
+      {/* Starter prompts: the desk's standing questions */}
+      <div className="scroll-fade flex items-center gap-3 mt-2.5 pt-2.5 border-t border-[var(--rule)] overflow-x-auto pr-8">
+        <span className="stamp text-[9px] text-[var(--ink-faint)] shrink-0">{t.press.tryThese}</span>
+        {t.starterPrompts.map((item) => (
+          <button
+            key={item.title}
+            type="button"
+            onClick={() => {
+              onQueryChange(item.prompt);
+              onSubmit(item.prompt);
+            }}
+            className="text-[12px] py-0.5 border-b border-[var(--rule)] text-[var(--ink-soft)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors truncate max-w-[210px] cursor-pointer shrink-0"
+            title={item.prompt}
+          >
+            {item.title}
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }

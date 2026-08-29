@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bookmark, Star } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { ComicGridSkeleton } from '@/components/ui/comic-card-skeleton';
 import { useI18n } from '@/core/i18n/context';
 import { fetchFreshCoverFromAniList } from '@/services/anilist-live.service';
@@ -21,15 +20,26 @@ interface ComicGridViewProps {
   onLoadMore?: () => void;
 }
 
-function LazyCoverImage({
-  src,
-  alt,
-  className,
-}: {
-  src: string | null;
-  alt: string;
-  className?: string;
-}) {
+/**
+ * Every entry carries a line saying what it is.
+ *
+ * The AI's own match reason when there is one; otherwise the opening of the
+ * title's synopsis, which is the title's own words rather than anything
+ * invented for it. AniList ships synopses with markup in them, so the tags come
+ * out before the sentence does.
+ */
+function entryBlurb(comic: ComicSearchResult): string | null {
+  if (comic.matchReason) return comic.matchReason;
+  if (!comic.synopsis) return null;
+  const plain = comic.synopsis
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!plain) return null;
+  return plain.length > 120 ? `${plain.slice(0, 117).trimEnd()}…` : plain;
+}
+
+function LazyCoverImage({ src, alt, label }: { src: string | null; alt: string; label: string }) {
   const [currentSrc, setCurrentSrc] = useState(src);
   const [loaded, setLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -62,14 +72,14 @@ function LazyCoverImage({
 
   if (!currentSrc || (hasError && !currentSrc)) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)] text-xs font-mono-data bg-[var(--bg-surface-raised)]">
-        No Cover
+      <div className="stamp w-full h-full flex items-center justify-center text-[9px] text-[var(--ink-faint)] bg-[var(--paper-plate)]">
+        {label}
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-full bg-[var(--bg-surface-raised)] overflow-hidden flex items-center justify-center">
+    <div className="relative w-full h-full bg-[var(--paper-plate)] overflow-hidden">
       {!loaded && !hasError && <div className="absolute inset-0 shimmer-element" />}
       <img
         ref={imgRef}
@@ -80,18 +90,31 @@ function LazyCoverImage({
         onLoad={() => setLoaded(true)}
         onError={handleError}
         className={cn(
-          'w-full h-full object-cover transition-all duration-300 ease-out',
-          loaded && !hasError ? 'opacity-100 scale-100' : 'opacity-0 scale-95',
-          className
+          'w-full h-full object-cover transition-opacity duration-300 ease-out',
+          loaded && !hasError ? 'opacity-100' : 'opacity-0'
         )}
       />
       {hasError && (
-        <span className="text-xs font-mono-data text-[var(--text-muted)]">No Cover</span>
+        <span className="stamp absolute inset-0 flex items-center justify-center text-[9px] text-[var(--ink-faint)]">
+          {label}
+        </span>
       )}
     </div>
   );
 }
 
+/**
+ * The plate gallery.
+ *
+ * Covers are this catalog's real content, so they are what the page is made of:
+ * mounted plates on the sheet, each with a hairline keyline, nothing between
+ * them but paper. No card shell, no panel behind the artwork, and no rank
+ * numeral in the margin — the reader is looking at an issue's plates, not
+ * reading a running order down a column.
+ *
+ * Column count follows the container, not the viewport: the catalog runs this
+ * same grid inside a column a filter rail narrower than discovery's.
+ */
 export function ComicGridView({
   comics,
   selectedId,
@@ -116,11 +139,9 @@ export function ComicGridView({
 
   if (comics.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8">
-        <p className="text-[var(--text-primary)] text-sm font-medium mb-1 font-jakarta">
-          {t.search.noResultsTitle}
-        </p>
-        <p className="text-[var(--text-muted)] text-xs font-mono-data">
+      <div className="py-16 px-6 text-center border-y-2 border-[var(--ink)]">
+        <p className="masthead text-2xl text-[var(--ink)] mb-2">{t.search.noResultsTitle}</p>
+        <p className="text-sm text-[var(--ink-soft)] max-w-md mx-auto leading-relaxed">
           {t.search.noResultsDesc}
         </p>
       </div>
@@ -129,97 +150,103 @@ export function ComicGridView({
 
   return (
     <>
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3.5">
-      {comics.map((comic) => {
-        const isSelected = selectedId === comic.id;
-        const isBookmarked = bookmarkedIds.has(comic.id);
-        const typeVariant =
-          comic.type === 'MANHWA' ? 'manhwa' : comic.type === 'MANGA' ? 'manga' : 'manhua';
+      <div className="@container/plates">
+        <ul className="grid grid-cols-2 @[34rem]/plates:grid-cols-3 @[48rem]/plates:grid-cols-4 @[64rem]/plates:grid-cols-5 gap-x-5 gap-y-7">
+          {comics.map((comic, index) => {
+            const isSelected = selectedId === comic.id;
+            const isBookmarked = bookmarkedIds.has(comic.id);
+            const title = comic.title_english || comic.title_romaji;
+            const blurb = entryBlurb(comic);
 
-        return (
-          <div
-            key={comic.id}
-            onClick={() => onSelect(comic)}
-            className={cn(
-              'group relative flex flex-col rounded-xl overflow-hidden bg-[var(--bg-surface)] border transition-all duration-150 cursor-pointer select-none shadow-xs',
-              isSelected
-                ? 'border-[#ff334b] ring-2 ring-[#ff334b]/40 shadow-md bg-[var(--bg-surface)]'
-                : 'border-[var(--border-subtle)] hover:border-[var(--border-muted)] hover:bg-[var(--bg-surface-raised)]'
-            )}
-          >
-            {/* Cover Image Container */}
-            <div className="relative w-full aspect-[3/4] overflow-hidden bg-[var(--bg-surface-raised)]">
-              <LazyCoverImage
-                src={comic.cover_image_url}
-                alt={comic.title_english || comic.title_romaji}
-                className="group-hover:scale-[1.03]"
-              />
-
-              {/* Badges Over Cover */}
-              <div className="absolute top-2 left-2 flex items-center gap-1 z-10">
-                <Badge variant={typeVariant}>{comic.type}</Badge>
-                {comic.total_chapters ? (
-                  <span className="px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-md border border-white/20 text-white text-[10px] font-mono-data shadow-sm font-semibold">
-                    {comic.total_chapters} ch
-                  </span>
-                ) : (
-                  <span className="px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-md border border-emerald-500/40 text-emerald-400 text-[10px] font-mono-data shadow-sm flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>{comic.status === 'FINISHED' ? 'Tamat' : 'Ongoing'}</span>
-                  </span>
-                )}
-              </div>
-
-              {comic.average_score && (
-                <div className="absolute top-2 right-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/60 border border-white/20 text-amber-300 text-[10px] font-mono-data backdrop-blur-md shadow-sm">
-                  <Star className="w-2.5 h-2.5 fill-current" />
-                  <span>{(comic.average_score / 10).toFixed(1)}</span>
-                </div>
-              )}
-
-              {/* Bookmark Hover Action */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleBookmark(comic.id);
-                }}
-                className={cn(
-                  'absolute bottom-2 right-2 z-10 p-1.5 rounded-lg backdrop-blur-md border transition-all cursor-pointer shadow-sm',
-                  isBookmarked
-                    ? 'bg-[#ff334b] text-white border-[#ff334b]'
-                    : 'bg-black/60 text-white border-white/20 hover:bg-black/80 opacity-0 group-hover:opacity-100'
-                )}
-                title={isBookmarked ? 'Remove bookmark' : 'Bookmark comic'}
+            return (
+              <li
+                key={comic.id}
+                className="ink-strike"
+                style={{ animationDelay: `${Math.min(index, 14) * 28}ms` }}
               >
-                <Bookmark className={cn('w-3.5 h-3.5', isBookmarked && 'fill-current')} />
-              </button>
-            </div>
+                <article
+                  onClick={() => onSelect(comic)}
+                  className="group flex flex-col h-full cursor-pointer select-none"
+                >
+                  {/* The plate, keylined the way a mounted plate is. */}
+                  <div
+                    className={cn(
+                      'relative w-full aspect-[3/4] overflow-hidden bg-[var(--paper-plate)]',
+                      'outline -outline-offset-1 transition-[outline-color,outline-width]',
+                      isSelected
+                        ? 'outline-2 outline-[var(--spot)]'
+                        : 'outline-1 outline-[var(--rule)] group-hover:outline-[var(--ink)]'
+                    )}
+                  >
+                    <LazyCoverImage src={comic.cover_image_url} alt={title} label={t.press.noPlate} />
 
-            {/* Title & Info */}
-            <div className="p-2.5 flex flex-col gap-1 flex-1 justify-between">
-              <div>
-                <h3 className="text-xs font-semibold text-[var(--text-primary)] line-clamp-1 group-hover:text-[#ff334b] transition-colors font-jakarta">
-                  {comic.title_english || comic.title_romaji}
-                </h3>
-                {comic.genres && comic.genres.length > 0 && (
-                  <p className="text-[10px] text-[var(--text-muted)] truncate font-jakarta">
-                    {comic.genres.slice(0, 2).join(' • ')}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleBookmark(comic.id);
+                      }}
+                      className={cn(
+                        'absolute top-0 right-0 z-10 p-1.5 transition-opacity cursor-pointer',
+                        isBookmarked
+                          ? 'bg-[var(--spot)] text-[var(--on-spot)] opacity-100'
+                          : 'bg-[var(--paper-sheet)] text-[var(--ink)] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100'
+                      )}
+                      title={isBookmarked ? t.common.bookmarked : t.common.save}
+                      aria-label={isBookmarked ? t.common.bookmarked : t.common.save}
+                    >
+                      <Bookmark className={cn('w-3.5 h-3.5', isBookmarked && 'fill-current')} />
+                    </button>
+                  </div>
+
+                  <h3
+                    className={cn(
+                      'text-[13px] font-semibold leading-tight line-clamp-2 mt-2 transition-colors',
+                      isSelected
+                        ? 'text-[var(--spot-text)]'
+                        : 'text-[var(--ink)] group-hover:text-[var(--spot-text)]'
+                    )}
+                  >
+                    {title}
+                  </h3>
+
+                  {/* The editor's line: why this title, in one sentence. */}
+                  {blurb && (
+                    <p className="text-[11px] text-[var(--ink-soft)] leading-snug line-clamp-2 mt-1">
+                      {comic.matchReason && (
+                        <span className="stamp text-[9px] text-[var(--spot-text)] mr-1">
+                          {t.press.why}
+                        </span>
+                      )}
+                      {blurb}
+                    </p>
+                  )}
+
+                  {/* Credit line, on the hairline that closes the entry. */}
+                  <p className="stamp figures flex items-center justify-between gap-2 mt-auto pt-1.5 border-t border-[var(--rule)] text-[9px] text-[var(--ink-faint)]">
+                    <span className="text-[var(--ink-soft)] truncate">{comic.type}</span>
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      {comic.average_score && (
+                        <span className="flex items-center gap-0.5 text-[var(--ink-gold)]">
+                          <Star className="w-2.5 h-2.5 fill-current" />
+                          {(comic.average_score / 10).toFixed(1)}
+                        </span>
+                      )}
+                      <span>
+                        {comic.total_chapters
+                          ? `${comic.total_chapters} ch`
+                          : comic.status === 'FINISHED'
+                            ? t.common.finished
+                            : t.common.ongoing}
+                      </span>
+                    </span>
                   </p>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] font-mono-data pt-1 border-t border-[var(--border-subtle)]">
-                <span>{comic.country_of_origin} • {comic.release_year || '-'}</span>
-                <span className="font-semibold text-[var(--text-secondary)]">
-                  {comic.total_chapters ? `${comic.total_chapters} ch` : (comic.status === 'FINISHED' ? 'Tamat' : 'Ongoing')}
-                </span>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
+                </article>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
 
       {onLoadMore && (
         <>
@@ -227,14 +254,14 @@ export function ComicGridView({
           <div ref={sentinelRef} aria-hidden className="h-px w-full" />
 
           {isLoadingMore && (
-            <div className="mt-3.5">
+            <div className="mt-7">
               <ComicGridSkeleton count={5} />
             </div>
           )}
 
           {!hasMore && !isLoadingMore && (
-            <p className="py-8 text-center text-[11px] font-mono-data text-[var(--text-muted)]">
-              {t.common.endOfResults}
+            <p className="stamp py-10 text-center text-[10px] text-[var(--ink-faint)]">
+              — {t.common.endOfResults} —
             </p>
           )}
         </>

@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, X, Filter, ChevronDown } from 'lucide-react';
+import { PrintedSelect } from '@/components/molecules/printed-select';
 import { ComicGridView } from '@/components/organisms/comic-grid-view';
 import { ComicInspector } from '@/components/organisms/comic-inspector';
+import { Folio } from '@/components/molecules/folio';
 import { useI18n } from '@/core/i18n/context';
 import { POPULAR_GENRES, POPULAR_TROPES, resolveTropeFilters } from '@/core/constants/comic-genres';
 import { getComics, findComicByTitle, PAGE_SIZE } from '@/services/comic.service';
@@ -171,87 +173,89 @@ export function CatalogBrowser({
   };
 
   return (
-    <div className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-56px)] overflow-hidden max-w-[1600px] w-full mx-auto">
-      {/* Mobile Filter Toggle Header (< lg) */}
-      <div className="lg:hidden flex items-center justify-between px-4 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] shrink-0">
+    <div
+      className="flex flex-col lg:flex-row h-[var(--view-h)] overflow-hidden max-w-[1600px] w-full mx-auto"
+      style={{ ['--spot' as string]: 'var(--ink-blue)' }}
+    >
+      {/* Mobile: the index opens on demand */}
+      <div className="lg:hidden flex items-center justify-between gap-3 px-3.5 py-2 border-b border-[var(--rule)] shrink-0">
         <button
           type="button"
           onClick={() => setIsMobileFiltersOpen((prev) => !prev)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-surface-raised)] border border-[var(--border-subtle)] text-xs font-mono-data font-semibold text-[var(--text-primary)] cursor-pointer"
+          className="stamp flex items-center gap-1.5 py-1.5 text-[9px] border-b-2 border-[var(--ink)] text-[var(--ink)] cursor-pointer"
         >
-          <Filter className="w-3.5 h-3.5 text-[#ff334b]" />
+          <Filter className="w-3.5 h-3.5" />
           <span>
-            {t.catalog.filters} {activeFiltersCount > 0 && `(${activeFiltersCount})`}
+            {t.catalog.filters}
+            {activeFiltersCount > 0 && ` (${activeFiltersCount})`}
           </span>
-          <ChevronDown
-            className={cn(
-              'w-3.5 h-3.5 transition-transform text-[var(--text-muted)]',
-              isMobileFiltersOpen && 'rotate-180'
-            )}
-          />
+          <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', isMobileFiltersOpen && 'rotate-180')} />
         </button>
 
-        <div className="flex items-center gap-2 text-xs font-mono-data text-[var(--text-muted)]">
+        <div className="stamp figures flex items-center gap-2.5 text-[9px] text-[var(--ink-faint)]">
           {activeFiltersCount > 0 && (
             <button
               type="button"
               onClick={clearFilters}
-              className="text-[11px] text-[#ff334b] underline cursor-pointer"
+              className="text-[var(--spot-text)] underline cursor-pointer"
             >
               {t.catalog.reset}
             </button>
           )}
           <span>
-            ({comics.length}
-            {hasMore ? '+' : ''})
+            {comics.length}
+            {hasMore ? '+' : ''}
           </span>
         </div>
       </div>
 
-      {/* Filter Sidebar (Dense, Technical, Collapsible on Mobile, Persistent on Desktop) */}
+      {/* The index margin */}
       <aside
         className={cn(
-          'w-full lg:w-60 shrink-0 border-b lg:border-b-0 border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 flex flex-col gap-4 overflow-y-auto max-h-[50vh] lg:max-h-none lg:my-5 lg:ml-5 lg:h-[calc(100%-2.5rem)] lg:rounded-2xl lg:border lg:shadow-xl',
-          !isMobileFiltersOpen && 'hidden lg:flex'
+          'w-full lg:w-64 shrink-0 overflow-y-auto max-h-[52vh] lg:max-h-none lg:h-full',
+          'px-3.5 sm:px-6 lg:pl-6 lg:pr-5 py-4 lg:py-5 lg:border-r border-b lg:border-b-0 border-[var(--rule)]',
+          !isMobileFiltersOpen && 'hidden lg:block'
         )}
       >
-        <div className="flex items-center justify-between font-mono-data text-xs pb-2 border-b border-[var(--border-subtle)]">
-          <span className="text-[var(--text-secondary)] font-semibold flex items-center gap-1.5">
-            <Filter className="w-3 h-3 text-[#ff334b]" />
-            {t.catalog.filters}
-          </span>
+        <div className="flex items-baseline justify-between gap-2 pb-2 mb-4 border-b-2 border-[var(--ink)]">
+          <h2 className="masthead text-lg text-[var(--ink)]">{t.catalog.filters}</h2>
           <button
             type="button"
             onClick={clearFilters}
-            className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            className="stamp text-[9px] text-[var(--ink-faint)] hover:text-[var(--ink)] transition-colors cursor-pointer"
           >
             {t.catalog.reset}
           </button>
         </div>
 
-        {/* Search Field */}
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
+        {/* Title filter */}
+        <div className="relative mb-5">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t.catalog.filterTitle}
-            className="w-full pl-8 pr-6 py-1.5 rounded-lg bg-[var(--input-bg)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--text-secondary)]"
+            aria-label={t.catalog.filterTitle}
+            className="field-ruled w-full pl-7 pr-6 py-1.5 bg-transparent text-[13px] text-[var(--ink)] placeholder-[var(--ink-faint)] focus:outline-none"
           />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--ink-faint)] pointer-events-none" />
           {searchQuery && (
             <button
+              type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--ink-faint)] hover:text-[var(--ink)] cursor-pointer"
+              aria-label={t.catalog.reset}
             >
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
 
-        {/* Type Selector */}
-        <div className="flex flex-col gap-1.5 font-mono-data text-xs">
-          <label className="text-[10px] text-[var(--text-muted)] uppercase">{t.catalog.format}</label>
+        {/* Format */}
+        <div className="mb-5">
+          <p className="stamp text-[9px] text-[var(--ink-faint)] pb-1.5 mb-2 border-b border-[var(--rule)]">
+            {t.catalog.format}
+          </p>
           <div className="grid grid-cols-2 gap-1">
             {(['ALL', 'MANHWA', 'MANGA', 'MANHUA'] as const).map((tType) => (
               <button
@@ -259,10 +263,10 @@ export function CatalogBrowser({
                 type="button"
                 onClick={() => setSelectedType(tType)}
                 className={cn(
-                  'px-2 py-1 rounded text-[11px] border text-center transition-colors cursor-pointer',
+                  'stamp px-1 py-1.5 text-[9px] text-left border-b-2 transition-colors cursor-pointer',
                   selectedType === tType
-                    ? 'bg-[var(--bg-surface-raised)] text-[var(--text-primary)] border-[var(--border-muted)] font-bold'
-                    : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:bg-[var(--bg-surface-raised)]'
+                    ? 'text-[var(--ink)] border-[var(--ink)]'
+                    : 'text-[var(--ink-faint)] border-[var(--rule)] hover:text-[var(--ink)]'
                 )}
               >
                 {tType === 'ALL' ? t.common.all : tType}
@@ -271,9 +275,11 @@ export function CatalogBrowser({
           </div>
         </div>
 
-        {/* Status Selector */}
-        <div className="flex flex-col gap-1.5 font-mono-data text-xs">
-          <label className="text-[10px] text-[var(--text-muted)] uppercase">{t.catalog.status}</label>
+        {/* Status */}
+        <div className="mb-5">
+          <p className="stamp text-[9px] text-[var(--ink-faint)] pb-1.5 mb-2 border-b border-[var(--rule)]">
+            {t.catalog.status}
+          </p>
           <div className="flex gap-1">
             {(['ALL', 'RELEASING', 'FINISHED'] as const).map((st) => (
               <button
@@ -281,10 +287,10 @@ export function CatalogBrowser({
                 type="button"
                 onClick={() => setSelectedStatus(st)}
                 className={cn(
-                  'flex-1 px-1.5 py-1 rounded text-[10px] border text-center transition-colors cursor-pointer',
+                  'stamp flex-1 px-1 py-1.5 text-[9px] border-b-2 transition-colors cursor-pointer',
                   selectedStatus === st
-                    ? 'bg-[var(--bg-surface-raised)] text-[var(--text-primary)] border-[var(--border-muted)] font-bold'
-                    : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:bg-[var(--bg-surface-raised)]'
+                    ? 'text-[var(--ink)] border-[var(--ink)]'
+                    : 'text-[var(--ink-faint)] border-[var(--rule)] hover:text-[var(--ink)]'
                 )}
               >
                 {st === 'ALL' ? t.common.all : st === 'RELEASING' ? t.common.ongoing : t.common.finished}
@@ -293,11 +299,11 @@ export function CatalogBrowser({
           </div>
         </div>
 
-        {/* Rating Slider */}
-        <div className="flex flex-col gap-1.5 font-mono-data text-xs">
-          <div className="flex justify-between items-center text-[10px] text-[var(--text-muted)] uppercase">
-            <span>{t.catalog.minRating}</span>
-            <span className="text-amber-500 font-bold">
+        {/* Minimum rating */}
+        <div className="mb-5">
+          <div className="flex items-baseline justify-between pb-1.5 mb-2 border-b border-[var(--rule)]">
+            <p className="stamp text-[9px] text-[var(--ink-faint)]">{t.catalog.minRating}</p>
+            <span className="stamp figures text-[9px] text-[var(--spot-text)]">
               {minScore > 0 ? `${(minScore / 10).toFixed(1)}+` : t.common.all}
             </span>
           </div>
@@ -308,16 +314,18 @@ export function CatalogBrowser({
             step="5"
             value={minScore}
             onChange={(e) => setMinScore(Number(e.target.value))}
-            className="w-full accent-[#ff334b] cursor-pointer"
+            aria-label={t.catalog.minRating}
+            className="w-full cursor-pointer"
           />
         </div>
 
         {/* Genres */}
-        <div className="flex flex-col gap-1.5 text-xs">
-          <label className="text-[10px] text-[var(--text-muted)] uppercase font-mono-data">
-            {t.catalog.genres} {selectedGenres.length > 0 && `(${selectedGenres.length})`}
-          </label>
-          <div className="flex flex-wrap gap-1 max-h-36 overflow-y-auto pr-1">
+        <div className="mb-5">
+          <p className="stamp text-[9px] text-[var(--ink-faint)] pb-1.5 mb-2 border-b border-[var(--rule)]">
+            {t.catalog.genres}
+            {selectedGenres.length > 0 && ` (${selectedGenres.length})`}
+          </p>
+          <div className="flex flex-wrap gap-1 max-h-40 overflow-y-auto pr-1">
             {POPULAR_GENRES.map((genre) => {
               const isSelected = selectedGenres.includes(genre);
               return (
@@ -326,10 +334,10 @@ export function CatalogBrowser({
                   type="button"
                   onClick={() => toggleGenre(genre)}
                   className={cn(
-                    'text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer select-none',
+                    'text-[12px] px-1 py-0.5 leading-tight transition-colors cursor-pointer select-none',
                     isSelected
-                      ? 'bg-[var(--bg-surface-raised)] text-[var(--text-primary)] border-[var(--border-muted)] font-medium'
-                      : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]'
+                      ? 'bg-[var(--ink)] text-[var(--paper)]'
+                      : 'text-[var(--ink-soft)] hover:text-[var(--ink)] underline decoration-[var(--rule)] hover:decoration-[var(--ink)]'
                   )}
                 >
                   {genre}
@@ -339,12 +347,13 @@ export function CatalogBrowser({
           </div>
         </div>
 
-        {/* Tropes & Themes (Murim, Regression, System, etc.) */}
-        <div className="flex flex-col gap-1.5 text-xs">
-          <label className="text-[10px] text-[var(--text-muted)] uppercase font-mono-data">
-            {t.catalog.tropes} {selectedTags.length > 0 && `(${selectedTags.length})`}
-          </label>
-          <div className="flex flex-wrap gap-1 max-h-48 overflow-y-auto pr-1">
+        {/* Tropes */}
+        <div className="pb-4">
+          <p className="stamp text-[9px] text-[var(--ink-faint)] pb-1.5 mb-2 border-b border-[var(--rule)]">
+            {t.catalog.tropes}
+            {selectedTags.length > 0 && ` (${selectedTags.length})`}
+          </p>
+          <div className="flex flex-wrap gap-1 max-h-52 overflow-y-auto pr-1">
             {POPULAR_TROPES.map((trope) => {
               const isSelected = selectedTags.includes(trope.label);
               return (
@@ -354,10 +363,10 @@ export function CatalogBrowser({
                   onClick={() => toggleTag(trope.label)}
                   title={trope.tags?.join(', ')}
                   className={cn(
-                    'text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer select-none',
+                    'text-[12px] px-1 py-0.5 leading-tight transition-colors cursor-pointer select-none',
                     isSelected
-                      ? 'bg-[#ff334b]/15 text-[#ff334b] border-[#ff334b]/40 font-medium'
-                      : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]'
+                      ? 'bg-[var(--spot)] text-[var(--on-spot)]'
+                      : 'text-[var(--ink-soft)] hover:text-[var(--ink)] underline decoration-[var(--rule)] hover:decoration-[var(--ink)]'
                   )}
                 >
                   {trope.label}
@@ -368,24 +377,31 @@ export function CatalogBrowser({
         </div>
       </aside>
 
-      {/* Main Grid View */}
-      <main className="flex-1 flex flex-col h-full overflow-y-auto px-4 sm:px-6 py-4 gap-4 pb-24 lg:pb-8">
-        <div className="flex items-center justify-between text-xs font-mono-data text-[var(--text-muted)] pb-2 border-b border-[var(--border-subtle)]">
-          <span>
-            {t.catalog.filters} {t.common.results} ({comics.length}
-            {hasMore ? '+' : ''})
-          </span>
-          <div className="flex items-center gap-2">
-            <span>{t.catalog.sort}:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="bg-[var(--input-bg)] border border-[var(--border-subtle)] text-[var(--text-primary)] px-2 py-0.5 rounded text-xs focus:outline-none cursor-pointer"
-            >
-              <option value="popularity">{t.catalog.sortPopularity}</option>
-              <option value="score">{t.catalog.sortScore}</option>
-              <option value="year">{t.catalog.sortYear}</option>
-            </select>
+      {/* The listing */}
+      <main className="flex-1 flex flex-col h-full overflow-y-auto px-3.5 sm:px-6 py-5 gap-4 pb-28 lg:pb-10">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 pb-2.5 border-b-2 border-[var(--ink)]">
+          <h2 className="masthead text-[clamp(1.1rem,2.4vw,1.5rem)] text-[var(--ink)]">
+            {t.nav.catalog}
+          </h2>
+          <div className="flex items-center gap-4">
+            <span className="stamp figures text-[9px] text-[var(--ink-faint)]">
+              {comics.length}
+              {hasMore ? '+' : ''} {t.common.results}
+            </span>
+            <div className="stamp flex items-center gap-2 text-[9px] text-[var(--ink-faint)]">
+              <span>{t.catalog.sort}</span>
+              <PrintedSelect
+                label={t.catalog.sort}
+                value={sortBy}
+                onChange={setSortBy}
+                options={[
+                  { value: 'popularity' as const, label: t.catalog.sortPopularity },
+                  { value: 'score' as const, label: t.catalog.sortScore },
+                  { value: 'year' as const, label: t.catalog.sortYear },
+                ]}
+                className="min-w-[8.5rem]"
+              />
+            </div>
           </div>
         </div>
 
@@ -401,6 +417,8 @@ export function CatalogBrowser({
             isLoadingMore={isLoadingMore}
             onLoadMore={loadMore}
           />
+
+          <Folio section={t.nav.catalog} tally={`${comics.length}${hasMore ? '+' : ''}`} />
         </div>
       </main>
 

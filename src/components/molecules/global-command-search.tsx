@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, X, Star, CornerDownLeft, Sparkles, Command } from 'lucide-react';
+import { Search, X, Star, CornerDownLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useI18n } from '@/core/i18n/context';
 import { getComics } from '@/services/comic.service';
@@ -11,6 +11,16 @@ interface GlobalCommandSearchProps {
   onSelectComic: (comic: Comic) => void;
 }
 
+/**
+ * The finder.
+ *
+ * Its anatomy is deliberately untouched by the redesign — trigger with a key
+ * hint, portal overlay, one input row, a result list you drive with the arrow
+ * keys, a footer legend. That structure was the one part of the old build
+ * worth keeping, so only its materials moved into the issue: square corners,
+ * paper stock, printed rules, and the spot color marking the row under the
+ * cursor.
+ */
 export function GlobalCommandSearch({ onSelectComic }: GlobalCommandSearchProps) {
   const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
@@ -94,22 +104,21 @@ export function GlobalCommandSearch({ onSelectComic }: GlobalCommandSearchProps)
 
   return (
     <>
-      {/* Navbar Elastic Trigger Button */}
+      {/* Masthead trigger */}
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-surface-raised)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-subtle)] hover:border-[var(--border-muted)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-mono-data transition-all cursor-pointer shadow-2xs group"
-        title="Quick Elastic Search (Ctrl+K)"
+        className="stamp group flex items-center gap-2 px-2 sm:px-2.5 py-1.5 text-[10px] border border-[var(--rule)] bg-[var(--paper-sheet)] text-[var(--ink-soft)] hover:border-[var(--ink)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+        title="Find a title (Ctrl+K)"
       >
-        <Search className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[#ff334b] transition-colors" />
-        <span className="hidden md:inline font-sans text-xs">{t.spotlight.quickSearch}</span>
-        <div className="flex items-center gap-0.5 text-[10px] bg-[var(--bg-surface)] px-1.5 py-0.5 rounded border border-[var(--border-subtle)] font-bold text-[var(--text-muted)]">
-          <Command className="w-2.5 h-2.5 hidden md:inline" />
-          <span>K</span>
-        </div>
+        <Search className="w-3.5 h-3.5 group-hover:text-[var(--spot-text)] transition-colors" />
+        <span className="hidden md:inline">{t.spotlight.quickSearch}</span>
+        <span className="figures px-1 py-px border border-[var(--rule)] text-[9px] leading-none text-[var(--ink-faint)]">
+          ⌘K
+        </span>
       </button>
 
-      {/* Elastic Spotlight Modal Overlay (Clean, full-screen portal backdrop) */}
+      {/* The finder, as an overlaid sheet */}
       {isOpen &&
         createPortal(
           <div
@@ -118,19 +127,16 @@ export function GlobalCommandSearch({ onSelectComic }: GlobalCommandSearchProps)
                 setIsOpen(false);
               }
             }}
-            className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/60 dark:bg-black/75 backdrop-blur-sm animate-in fade-in duration-150"
+            className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-[color-mix(in_oklab,var(--ink)_72%,transparent)] animate-in fade-in duration-150"
+            style={{ ['--spot' as string]: 'var(--ink-magenta)' }}
           >
             <div
               ref={modalRef}
-              className="w-full max-w-2xl rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-2xl shadow-black/40 dark:shadow-black/80 overflow-hidden flex flex-col animate-in zoom-in-95 duration-150"
+              className="w-full max-w-2xl bg-[var(--paper-sheet)] border-2 border-[var(--ink)] shadow-[var(--lift-shadow)] overflow-hidden flex flex-col animate-in zoom-in-95 duration-150"
             >
-              {/* Input Bar */}
-              <div className="relative flex items-center px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--input-bg)]">
-                {isLoading ? (
-                  <Sparkles className="w-5 h-5 text-[#ff334b] animate-spin mr-3 shrink-0" />
-                ) : (
-                  <Search className="w-5 h-5 text-[var(--text-muted)] mr-3 shrink-0" />
-                )}
+              {/* Input row */}
+              <div className="relative flex items-center gap-3 px-4 py-3.5 border-b-2 border-[var(--ink)] focus-within:border-[var(--spot)] transition-colors">
+                <Search className="w-4 h-4 text-[var(--ink-faint)] shrink-0" />
 
                 <input
                   ref={inputRef}
@@ -139,26 +145,30 @@ export function GlobalCommandSearch({ onSelectComic }: GlobalCommandSearchProps)
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder={t.spotlight.placeholder}
-                  className="w-full bg-transparent text-sm sm:text-base text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none font-jakarta"
+                  className="w-full bg-transparent text-base sm:text-lg font-medium text-[var(--ink)] placeholder-[var(--ink-faint)] focus:outline-none"
                 />
 
                 {query ? (
                   <button
                     type="button"
                     onClick={() => setQuery('')}
-                    className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-raised)] transition-colors cursor-pointer"
+                    className="p-1 text-[var(--ink-faint)] hover:text-[var(--ink)] transition-colors cursor-pointer shrink-0"
+                    aria-label="Clear"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 ) : (
-                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono-data rounded bg-[var(--bg-surface-raised)] border border-[var(--border-subtle)] text-[var(--text-muted)]">
+                  <kbd className="stamp px-1.5 py-0.5 text-[9px] border border-[var(--rule)] text-[var(--ink-faint)] shrink-0">
                     ESC
                   </kbd>
                 )}
+
+                {/* The roller runs while the query is out. */}
+                {isLoading && <span className="press-bar" aria-hidden />}
               </div>
 
-              {/* Results List */}
-              <div className="max-h-[380px] overflow-y-auto p-2 flex flex-col gap-1">
+              {/* Results */}
+              <div className="max-h-[380px] overflow-y-auto">
                 {results.length > 0 ? (
                   results.map((comic, idx) => {
                     const isSelected = idx === selectedIndex;
@@ -174,71 +184,84 @@ export function GlobalCommandSearch({ onSelectComic }: GlobalCommandSearchProps)
                         }}
                         onMouseEnter={() => setSelectedIndex(idx)}
                         className={cn(
-                          'flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-colors select-none',
+                          'flex items-center justify-between gap-3 px-4 py-2.5 cursor-pointer transition-colors select-none border-b border-[var(--rule)] last:border-b-0',
                           isSelected
-                            ? 'bg-[var(--bg-surface-raised)] text-[var(--text-primary)] ring-1 ring-[#ff334b]/40'
-                            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-raised)]'
+                            ? 'bg-[var(--spot-wash)]'
+                            : 'hover:bg-[var(--paper-deep)]'
                         )}
                       >
                         <div className="flex items-center gap-3 min-w-0">
+                          {/* The cursor is a printed bar in the margin, not a ring. */}
+                          <span
+                            className={cn(
+                              'w-[3px] self-stretch shrink-0 transition-colors',
+                              isSelected ? 'bg-[var(--spot)]' : 'bg-transparent'
+                            )}
+                            aria-hidden
+                          />
+
                           {comic.cover_image_url ? (
                             <img
                               src={comic.cover_image_url}
-                              alt={comic.title_english || comic.title_romaji}
-                              className="w-10 aspect-[3/4] object-cover rounded-lg shrink-0 bg-[var(--bg-surface-raised)] border border-[var(--border-subtle)]"
+                              alt=""
+                              className="w-9 aspect-[3/4] object-cover shrink-0 bg-[var(--paper-plate)]"
                             />
                           ) : (
-                            <div className="w-10 aspect-[3/4] rounded-lg bg-[var(--bg-surface-raised)] shrink-0" />
+                            <div className="w-9 aspect-[3/4] bg-[var(--paper-plate)] shrink-0" />
                           )}
 
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-sm font-semibold text-[var(--text-primary)] truncate font-jakarta">
+                          <div className="flex flex-col min-w-0 gap-1">
+                            <span className="text-sm font-semibold text-[var(--ink)] truncate leading-tight">
                               {comic.title_english || comic.title_romaji}
                             </span>
-                            <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] font-mono-data mt-0.5">
+                            <div className="flex items-center gap-2">
                               <Badge variant={typeVariant}>{comic.type}</Badge>
                               {comic.average_score && (
-                                <span className="flex items-center gap-0.5 text-amber-500 font-bold text-[11px]">
-                                  <Star className="w-3 h-3 fill-current" />
+                                <span className="stamp figures flex items-center gap-0.5 text-[9px] text-[var(--ink-gold)]">
+                                  <Star className="w-2.5 h-2.5 fill-current" />
                                   {(comic.average_score / 10).toFixed(1)}
                                 </span>
                               )}
-                              <span>{comic.total_chapters ? `${comic.total_chapters} ch` : t.common.ongoing}</span>
+                              <span className="stamp figures text-[9px] text-[var(--ink-faint)]">
+                                {comic.total_chapters ? `${comic.total_chapters} ch` : t.common.ongoing}
+                              </span>
                             </div>
                           </div>
                         </div>
 
                         {isSelected && (
-                          <div className="flex items-center gap-1 text-[11px] font-mono-data text-[var(--text-muted)] shrink-0 ml-2">
+                          <span className="stamp flex items-center gap-1 text-[9px] text-[var(--spot-text)] shrink-0">
                             <span>{t.spotlight.open}</span>
-                            <CornerDownLeft className="w-3 h-3 text-[#ff334b]" />
-                          </div>
+                            <CornerDownLeft className="w-3 h-3" />
+                          </span>
                         )}
                       </div>
                     );
                   })
                 ) : query.trim() ? (
-                  <div className="py-10 text-center text-xs text-[var(--text-muted)] font-mono-data">
+                  <p className="py-10 px-4 text-center text-xs text-[var(--ink-faint)]">
                     {t.spotlight.noResults(query)}
-                  </div>
+                  </p>
                 ) : (
-                  <div className="py-8 px-4 flex flex-col gap-2 text-xs font-mono-data text-[var(--text-muted)] text-center">
-                    <span>{t.spotlight.emptyTitle}</span>
-                    <span className="text-[11px] text-[var(--text-secondary)]">
+                  <div className="py-9 px-6 flex flex-col gap-2 text-center">
+                    <p className="text-sm text-[var(--ink-soft)] leading-relaxed">
+                      {t.spotlight.emptyTitle}
+                    </p>
+                    <p className="stamp text-[9px] text-[var(--ink-faint)]">
                       {t.spotlight.emptyHint}
-                    </span>
+                    </p>
                   </div>
                 )}
               </div>
 
-              {/* Footer Strip */}
-              <div className="flex items-center justify-between px-4 py-2 bg-[var(--bg-surface-raised)] border-t border-[var(--border-subtle)] text-[11px] font-mono-data text-[var(--text-muted)]">
+              {/* Footer legend */}
+              <div className="stamp flex items-center justify-between gap-3 px-4 py-2 bg-[var(--ink)] text-[var(--paper)] text-[9px]">
                 <div className="flex items-center gap-3">
-                  <span><kbd className="px-1 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-subtle)]">↑↓</kbd> {t.spotlight.nav}</span>
-                  <span><kbd className="px-1 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-subtle)]">↵</kbd> {t.spotlight.select}</span>
-                  <span><kbd className="px-1 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-subtle)]">ESC</kbd> {t.spotlight.close}</span>
+                  <span>↑↓ {t.spotlight.nav}</span>
+                  <span>↵ {t.spotlight.select}</span>
+                  <span className="hidden sm:inline">ESC {t.spotlight.close}</span>
                 </div>
-                <span className="text-[#ff334b] font-bold">{t.spotlight.badge}</span>
+                <span className="text-[var(--paper)] opacity-70">{t.spotlight.badge}</span>
               </div>
             </div>
           </div>,

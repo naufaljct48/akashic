@@ -1,4 +1,4 @@
-const CACHE_NAME = 'akashic-dex-v2';
+const CACHE_NAME = 'akashic-dex-v3';
 const STATIC_ASSETS = ['/', '/index.html', '/manifest.json', '/favicon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -44,7 +44,28 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(async () => {
+        /*
+         * The network failed. `caches.match` resolves to undefined on a miss,
+         * and respondWith(undefined) throws "Failed to convert value to
+         * 'Response'" — which is what surfaced every time a cross-origin
+         * request (AniList, analytics) was refused. Every branch below returns
+         * an actual Response.
+         */
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+
+        // A page load offline still boots the app from the cached shell.
+        if (event.request.mode === 'navigate') {
+          const shell = await caches.match('/index.html');
+          if (shell) return shell;
+        }
+
+        return new Response('', {
+          status: 504,
+          statusText: 'Gateway Timeout',
+          headers: { 'Content-Type': 'text/plain' },
+        });
+      })
   );
 });
-

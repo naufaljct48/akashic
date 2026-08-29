@@ -6,11 +6,35 @@ export const id = {
     save: 'Simpan',
     bookmarked: 'Tersimpan',
     results: 'HASIL',
-    clickToInspect: 'KLIK KARTU UNTUK INSPEKSI',
+    clickToInspect: 'KLIK ENTRI UNTUK MEMBUKA',
     pressKey: 'Tekan',
     toSearch: 'untuk cari',
     endOfResults: 'Semua hasil sudah ditampilkan',
     loadingMore: 'Memuat lebih banyak...',
+  },
+  press: {
+    weeklyEdition: 'Edisi Mingguan',
+    issue: 'No.',
+    titlesOnFile: (count: string) => `${count} judul terarsip`,
+    freeNoAccount: 'Gratis · Tanpa akun',
+    contents: 'Daftar Isi',
+    source: 'Kode di GitHub',
+    frontPage: 'Akashic Dex — halaman depan',
+    edition: 'Edisi',
+    editionId: 'Edisi Indonesia',
+    editionEn: 'Edisi internasional',
+    day: 'Siang',
+    night: 'Malam',
+    toDay: 'Ganti ke edisi siang',
+    toNight: 'Ganti ke edisi malam',
+    noPlate: 'Tanpa pelat',
+    why: 'Alasan',
+    tryThese: 'Coba',
+    retrieving: 'Mengambil',
+    ranking: 'Memeringkat',
+    printing: 'Mencetak',
+    setting: 'Menyusun',
+    inking: 'Menintai',
   },
   nav: {
     discovery: 'Jelajah',
@@ -25,7 +49,7 @@ export const id = {
   },
   feeds: {
     curated: 'Eksplorasi AI',
-    trending: 'Trending Hari Ini',
+    trending: 'Sedang Trend',
     recentUpdates: 'Baru Update Chapter',
     newReleases: 'Judul Baru Rilis',
     liveBadge: 'LIVE ANILIST SYNC',
@@ -37,7 +61,7 @@ export const id = {
   spotlight: {
     quickSearch: 'Cari cepat...',
     placeholder: 'Cari judul komik, genre, atau tropes secara instan...',
-    emptyTitle: 'Ketik judul komik apa saja untuk mencari langsung di antara 1.000+ data real.',
+    emptyTitle: 'Ketik judul komik apa saja untuk mencari langsung di antara 6.600+ data real.',
     emptyHint: 'Gunakan tombol ↑ ↓ untuk navigasi dan Enter untuk memilih.',
     noResults: (q: string) =>
       `Tidak ada hasil untuk "${q}". Tekan Enter di tab Jelajah untuk pencarian AI.`,
@@ -48,14 +72,13 @@ export const id = {
     badge: 'Elastic Fast Finder',
   },
   search: {
-    placeholder:
-      'Tanya AI atau cari judul / tropes... (misal: "murim mc licik tanpa romance", "solo leveling")',
+    placeholder: 'Tanya AI, atau cari judul dan trope',
     rateLimitReached:
       'Batas 10 prompt/hari tercapai. Gunakan filter manual di bawah.',
     ask: 'Tanya',
     quota: 'Kuota',
     resetQuery: 'Reset Kueri',
-    semanticMatch: 'Pencocokan Vektor Semantik',
+    semanticMatch: 'Pencocokan Semantik',
     searching: 'Menganalisis kueri & kurasi rekomendasi...',
     titlesCount: (count: number) => `${count} Judul Ditemukan`,
     matchFoundCount: (count: number) =>
@@ -146,7 +169,7 @@ export const id = {
   about: {
     badge: 'Mesin Penemuan Semantik',
     title: 'Apa itu Akashic Dex?',
-    shortDesc: 'Platform rekomendasi & kurasi komik berbasis AI pertama yang paham alur cerita, formula trope, dan vibes karakter.',
+    shortDesc: 'Mesin rekomendasi & kurasi komik berbasis AI yang paham alur cerita, formula trope, dan vibes karakter — lengkap dengan alasan kenapa tiap judul cocok.',
     p1Title: 'Pencarian AI Berbasis Tropes',
     p1Desc: 'Bukan cuma cocok kata kunci. Tanya AI dengan bahasa santai (misal: "MC licik kayak Lloyd tapi setting murim").',
     p2Title: '6.600+ Database Manga, Manhwa & Manhua',
@@ -154,9 +177,9 @@ export const id = {
     p3Title: 'Pelacak Bacaan Offline & Privasi Terjaga',
     p3Desc: 'Simpan progress bacaan lo langsung di browser secara lokal tanpa perlu ribet bikin akun/login.',
     gotIt: 'Mengerti, Mulai Jelajahi!',
-    showDetails: 'Apa itu Akashic Dex?',
-    hideDetails: 'Tutup Penjelasan',
-    searchTip: '💡 Tip: Gunakan bahasa santai dan deskriptif di kolom pencarian',
+    showDetails: 'Cara kerjanya',
+    hideDetails: 'Tutup',
+    searchTip: 'Tip: gunakan bahasa santai dan deskriptif di kolom pencarian',
   },
 };
 

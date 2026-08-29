@@ -79,17 +79,22 @@ export async function getComics(params: ComicFilterParams = {}): Promise<Comic[]
 }
 
 export async function getComicBySlug(slug: string): Promise<Comic | null> {
+  // maybeSingle, not single: `.single()` asks PostgREST to fail the request
+  // unless it matches exactly one row, so a link to a title the catalog does
+  // not hold returned HTTP 406 and logged an error. A miss is expected here —
+  // the deep-link hook tries AniList next — so it returns null quietly and
+  // only a real transport or query fault is worth the console.
   const { data, error } = await (supabase.from('comics') as any)
     .select('*')
     .eq('slug', slug)
-    .single();
+    .maybeSingle();
 
-  if (error || !data) {
+  if (error) {
     console.error('[comicService.getComicBySlug] Error:', error);
     return null;
   }
 
-  return data as Comic;
+  return (data as Comic) || null;
 }
 
 export interface SemanticSearchResult {
