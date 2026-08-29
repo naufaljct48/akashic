@@ -6,9 +6,10 @@
 -- never captured as a migration, so a fresh clone of this repo could not stand
 -- the project up. This file reconstructs them from that contract.
 --
--- Written to be idempotent and safe to re-run. If your live definition differs,
--- dump it and replace this file — the live database is the source of truth here,
--- not this reconstruction.
+-- Verified against the live database on 2026-08-29: the function body below is
+-- byte-identical to the deployed definition, so re-running this file is a no-op
+-- rather than a silent behaviour change. If you alter the live function, dump it
+-- and update this file — the database remains the source of truth.
 -- ==============================================================================
 
 -- 1. Secret store. Never readable by anon/authenticated: the AI provider key
@@ -33,10 +34,10 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-    v_value TEXT;
+    v_val TEXT;
 BEGIN
-    SELECT value INTO v_value FROM public.app_secrets WHERE key = p_key;
-    RETURN v_value;
+    SELECT value INTO v_val FROM public.app_secrets WHERE key = p_key;
+    RETURN v_val;
 END;
 $$;
 
