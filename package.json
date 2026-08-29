@@ -14,8 +14,9 @@
     "secret": "bun scripts/set-secret.ts",
     "heal:covers": "bun scripts/fix-all-covers.ts",
     "ingest:trending": "bun scripts/ingest-trending.ts",
-    "test": "bun src/lib/supabase/filters.test.ts && bun src/core/constants/name-extraction.test.ts && bun src/core/types/bookmark.test.ts",
-    "test:filters": "bun scripts/verify-catalog-filters.ts"
+    "test": "bun src/lib/supabase/filters.test.ts && bun src/core/constants/name-extraction.test.ts && bun src/core/types/bookmark.test.ts && bun scripts/workers-ai.test.ts",
+    "test:filters": "bun scripts/verify-catalog-filters.ts",
+    "embed:catalog": "bun scripts/embed-catalog.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
