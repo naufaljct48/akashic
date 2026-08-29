@@ -57,10 +57,19 @@ export function CommandSearchBar({
 
   return (
     <div className="w-full flex flex-col gap-3">
-      {/* Search Input Bar (Wrapped in Form for 100% reliable submit) */}
+      {/*
+        Search Input Bar (Wrapped in Form for 100% reliable submit).
+
+        The extra wrapper is load-bearing: `.ai-prompt-ring` paints its rotating
+        spectrum from a `z-index: -1` pseudo-element, which sits *above* its own
+        element's background but below a child's. So the ring needs a
+        transparent parent and the opaque field as a child — putting the class
+        straight on the form would flood the input with the gradient.
+      */}
+      <div className="ai-prompt-ring rounded-xl">
       <form
         onSubmit={handleFormSubmit}
-        className="relative flex items-center rounded-xl bg-[var(--input-bg)] border border-[var(--border-subtle)] focus-within:border-[var(--text-secondary)] transition-all shadow-xs"
+        className="relative flex items-center rounded-xl bg-[var(--input-bg)] border border-[var(--border-subtle)] transition-all shadow-xs"
       >
         <div className="pl-3.5 pr-2 text-[var(--text-muted)] flex items-center shrink-0">
           {isLoading ? (
@@ -102,6 +111,7 @@ export function CommandSearchBar({
           </button>
         </div>
       </form>
+      </div>
 
       {/* Control Strip: Format Filters + Preset Chips + Quota */}
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">

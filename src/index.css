@@ -99,6 +99,85 @@ body {
   content: '';
 }
 
+/* ==========================================================================
+   AI prompt ring — a rotating spectrum border that marks the one input you
+   can talk to, as opposed to the plain filter/spotlight fields elsewhere.
+
+   A conic-gradient cannot be transitioned on its own, so the sweep angle is
+   registered as a real typed custom property and animated instead of spinning
+   the element — rotating a `transform` here would drag the rounded corners
+   out of alignment with the input behind it.
+   ========================================================================== */
+@property --ai-ring-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes ai-ring-rotate {
+  to {
+    --ai-ring-angle: 360deg;
+  }
+}
+
+.ai-prompt-ring {
+  position: relative;
+  isolation: isolate;
+}
+
+/* The ring itself. `inset` is negative so it peeks out from behind the input
+   by exactly the ring width; the input keeps its own opaque background. */
+.ai-prompt-ring::before,
+.ai-prompt-ring::after {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  z-index: -1;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--ai-ring-angle),
+    #ff334b,
+    #f59e0b,
+    #22c55e,
+    #06b6d4,
+    #6366f1,
+    #d946ef,
+    #ff334b
+  );
+  animation: ai-ring-rotate 6s linear infinite;
+}
+
+/* Second copy, blurred, as the bloom. Kept dim so the input still reads as a
+   form field rather than a light show. */
+.ai-prompt-ring::after {
+  inset: -3px;
+  filter: blur(9px);
+  opacity: 0.35;
+  transition: opacity 200ms ease-out;
+}
+
+.ai-prompt-ring:focus-within::after {
+  opacity: 0.7;
+}
+
+/* Idle is deliberately restrained — full saturation only once the user is
+   actually composing a question. */
+.ai-prompt-ring::before {
+  opacity: 0.55;
+  transition: opacity 200ms ease-out;
+}
+
+.ai-prompt-ring:focus-within::before {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-prompt-ring::before,
+  .ai-prompt-ring::after {
+    animation: none;
+  }
+}
+
 /* Custom crisp scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
