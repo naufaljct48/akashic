@@ -105,7 +105,32 @@ function slugify(text: string): string {
  * Fetch live fresh chapter count, score, and status from AniList GraphQL for a given comic.
  * Returns the fresh values for display; the ingestion cron persists them.
  */
+/**
+ * One live sync per title per session.
+ *
+ * AniList allows 30 requests a minute. Opening the spread fires this on every
+ * mount, React's StrictMode fires each effect twice in development, and the
+ * cover healer and the graph fetch are drawing on the same budget — so browsing
+ * a handful of titles in quick succession was enough to earn a 502, whose
+ * response carries no CORS headers and therefore surfaces in the console as a
+ * CORS failure rather than as the rate limit it is.
+ *
+ * The promise is cached, not just the result, so a double mount shares one
+ * in-flight request instead of racing two. Chapter counts do not change often
+ * enough for a per-session cache to go stale in any way a reader would notice.
+ */
+const liveSyncCache = new Map<number, Promise<LiveUpdateResult>>();
+
 export async function syncLiveComicData(comic: Comic): Promise<LiveUpdateResult> {
+  const cached = comic.source_id ? liveSyncCache.get(comic.source_id) : undefined;
+  if (cached) return cached;
+
+  const pending = syncLiveComicDataUncached(comic);
+  if (comic.source_id) liveSyncCache.set(comic.source_id, pending);
+  return pending;
+}
+
+async function syncLiveComicDataUncached(comic: Comic): Promise<LiveUpdateResult> {
   const unchanged: LiveUpdateResult = {
     updated: false,
     chapters: comic.total_chapters,
@@ -254,6 +279,103 @@ export async function searchLiveAniList(query: string, maxResults = 5): Promise<
     perPage: maxResults,
   });
   return mapMediaListToComics(data?.Page?.media || []);
+}
+
+/**
+ * Find comics by what a story *is about*, not by what it is called.
+ *
+ * The catalog's tag probes only ever reached the ~6,600 ingested rows, so a
+ * description of a title we had not ingested could not be answered at all —
+ * the model can only rank what retrieval hands it, and it is never allowed to
+ * invent a title.
+ *
+ * Two facts about AniList's data shape this:
+ *
+ *  1. `tag_in` is AND, not OR. Asking for ['Post-Apocalyptic', 'Music'] returns
+ *     nothing, because no single entry carries both. So each tag gets its own
+ *     aliased query in one round trip, and the merge ranks by how many of the
+ *     hinted tags an entry actually carries.
+ *  2. MANGA entries are barely tagged; their ANIME counterparts are tagged
+ *     richly. Guilty Crown's manga entry carries one meaningful tag; its anime
+ *     entry carries Dystopian, Post-Apocalyptic, Pandemic and sixteen more.
+ *     Readers describe the anime they remember, so the search runs against
+ *     ANIME entries and then follows each one's ADAPTATION/SOURCE edge back to
+ *     the manga this product actually recommends.
+ */
+export async function searchAniListByConcept(
+  tags: string[],
+  maxResults = 12
+): Promise<ComicSearchResult[]> {
+  // Four, not three: the hint dictionary emits its most generic tags first
+  // ("Survival", "Post-Apocalyptic"), and cutting at three routinely dropped
+  // the one distinctive tag that separates the answer from every blockbuster
+  // carrying the same broad theme.
+  const probes = tags.slice(0, 4);
+  if (probes.length === 0) return [];
+
+  // Step 1 — one aliased query per tag, asking only what ranking needs.
+  const aliases = probes
+    .map(
+      (_, i) => `p${i}: Page(perPage: 25) {
+    media(type: ANIME, tag_in: $t${i}, sort: [POPULARITY_DESC]) {
+      tags { name }
+      relations { edges { relationType node { id type } } }
+    }
+  }`
+    )
+    .join('\n  ');
+  const varDefs = probes.map((_, i) => `$t${i}: [String]`).join(', ');
+  const variables: Record<string, unknown> = {};
+  probes.forEach((tag, i) => {
+    variables[`t${i}`] = [tag];
+  });
+
+  const found = await anilistQuery<Record<string, any>>(
+    `query (${varDefs}) {\n  ${aliases}\n}`,
+    variables
+  );
+  if (!found) return [];
+
+  const hinted = new Set(probes);
+  // A manga scores by how many hinted tags its anime carried, so an entry that
+  // answers two halves of the description outranks one that answers a single
+  // popular tag.
+  const scoreById = new Map<number, number>();
+  for (const page of Object.values(found)) {
+    for (const anime of page?.media || []) {
+      const hits = (anime.tags || []).reduce(
+        (n: number, t: any) => n + (hinted.has(t?.name) ? 1 : 0),
+        0
+      );
+      for (const edge of anime.relations?.edges || []) {
+        if (edge?.node?.type !== 'MANGA') continue;
+        if (edge.relationType !== 'ADAPTATION' && edge.relationType !== 'SOURCE') continue;
+        const id = edge.node.id;
+        scoreById.set(id, Math.max(scoreById.get(id) ?? 0, hits));
+      }
+    }
+  }
+  if (scoreById.size === 0) return [];
+
+  const ids = [...scoreById.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, maxResults)
+    .map(([id]) => id);
+
+  // Step 2 — full fields for the shortlist only. Asking for them inline in
+  // step 1 would have pulled several hundred media objects per search.
+  const detail = await anilistQuery<{ Page: any }>(
+    `query ($ids: [Int]) {
+  Page(perPage: ${maxResults}) {
+    media(type: MANGA, id_in: $ids, sort: [POPULARITY_DESC]) {
+      ${MEDIA_FIELDS}
+    }
+  }
+}`,
+    { ids }
+  );
+
+  return mapMediaListToComics(detail?.Page?.media || []);
 }
 
 const CHARACTER_MEDIA_FRAGMENT = `

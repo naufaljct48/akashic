@@ -48,6 +48,8 @@ const TAG_HINTS: Record<string, string[]> = {
   game: ['Video Games', 'Virtual World'],
   vrmmo: ['Virtual World', 'Video Games'],
   'virtual world': ['Virtual World'],
+  'virtual reality': ['Virtual World', 'Augmented Reality'],
+  'dunia virtual': ['Virtual World', 'Augmented Reality'],
 
   // --- Power fantasy / character ------------------------------------------
   overpowered: ['Super Power', 'Anti-Hero'],
@@ -115,8 +117,13 @@ const TAG_HINTS: Record<string, string[]> = {
   bertahan: ['Survival'],
   'death game': ['Death Game', 'Battle Royale', 'Survival'],
   apocalypse: ['Post-Apocalyptic', 'Zombie', 'Survival'],
-  apokalips: ['Post-Apocalyptic', 'Survival'],
+  apocalyptic: ['Post-Apocalyptic', 'Dystopian', 'Survival'],
   kiamat: ['Post-Apocalyptic', 'Survival'],
+  distopia: ['Dystopian', 'Post-Apocalyptic'],
+  dystopia: ['Dystopian', 'Post-Apocalyptic'],
+  pandemi: ['Pandemic', 'Post-Apocalyptic'],
+  pandemic: ['Pandemic', 'Post-Apocalyptic'],
+  apokalips: ['Post-Apocalyptic', 'Survival'],
   zombie: ['Zombie', 'Post-Apocalyptic'],
 
   // --- Fantasy furniture ---------------------------------------------------
@@ -156,7 +163,6 @@ const TAG_HINTS: Record<string, string[]> = {
   perundungan: ['Bullying'],
   urban: ['Urban Fantasy', 'Urban'],
   cyberpunk: ['Cyberpunk', 'Artificial Intelligence'],
-  robot: ['Robots', 'Artificial Intelligence'],
   ai: ['Artificial Intelligence'],
   'kecerdasan buatan': ['Artificial Intelligence'],
 
@@ -169,7 +175,13 @@ const TAG_HINTS: Record<string, string[]> = {
   chef: ['Food'],
   idol: ['Idol', 'Music'],
   musik: ['Band', 'Idol'],
-  music: ['Band', 'Idol'],
+  music: ['Band', 'Idol', 'Music'],
+  nyanyi: ['Music', 'Idol', 'Band'],
+  menyanyi: ['Music', 'Idol', 'Band'],
+  singing: ['Music', 'Idol', 'Band'],
+  lagu: ['Music', 'Band'],
+  robot: ['Robots', 'Artificial Intelligence', 'Real Robot'],
+  mecha: ['Real Robot', 'Super Robot'],
   olahraga: ['Athletics'],
   amnesia: ['Amnesia', 'Memory Manipulation'],
   'hilang ingatan': ['Amnesia', 'Memory Manipulation'],

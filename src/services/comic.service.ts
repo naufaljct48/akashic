@@ -1,7 +1,11 @@
 import { supabase } from '@/lib/supabase/client';
 import { csArray, ilikePattern, pgArrayLiteral } from '@/lib/supabase/filters';
 import { analyzeAndRankWithDeepSeek } from './deepseek.service';
-import { searchLiveAniList, searchAniListByCharacter } from './anilist-live.service';
+import {
+  searchLiveAniList,
+  searchAniListByCharacter,
+  searchAniListByConcept,
+} from './anilist-live.service';
 import { queryTagHints } from '@/core/constants/query-tag-hints';
 import { characterSearchTerms } from '@/core/constants/name-extraction';
 import type { Comic, ComicFilterParams, ComicSearchResult, ComicType } from '@/core/types/comic';
@@ -366,6 +370,20 @@ async function retrieveSemanticCandidates(
       .map((r) => r.comic);
 
     addAll(ranked);
+  }
+
+  // ---- 3b. Concept probe against AniList's whole catalog ------------------
+  // Probe 3 can only find what was ingested. This asks AniList for titles that
+  // *are about* the hinted concepts, which is the only way a description can
+  // reach a title the catalog does not hold — and descriptions are most of
+  // what this path receives. It searches ANIME entries and follows them back to
+  // their manga: AniList tags its anime richly and its manga barely, and a
+  // reader describing a story is usually describing the adaptation they saw.
+  if (hintedTags.length > 0) {
+    // 20 to match the catalog tag probe above, so the two halves of the same
+    // question contribute comparable pools rather than one quietly outweighing
+    // the other.
+    addAll((await searchAniListByConcept(hintedTags, 20)) as Comic[]);
   }
 
   // ---- 4. Free-text keyword probe over synopsis ---------------------------
