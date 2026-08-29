@@ -1,6 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/*
+ * Point Tailwind's own font utilities at the project's typefaces.
+ *
+ * `body` already set Plus Jakarta Sans, but the app root carries `font-sans`,
+ * and without this block that utility resolves to Tailwind's default system
+ * stack — which overrode the body rule for the entire tree. Anything that did
+ * not explicitly opt in with `font-jakarta` silently rendered in -apple-system,
+ * including every input placeholder. Defining the theme values fixes it at the
+ * source instead of sprinkling `font-jakarta` onto each element.
+ */
+@theme {
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
 :root, html.dark {
   color-scheme: dark;
   --bg-canvas: #09090b;

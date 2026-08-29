@@ -203,7 +203,7 @@ export function WorkspaceHeader({
                     <Sparkles className="w-4 h-4 text-[#ff334b]" />
                     <span>{t.nav.discovery}</span>
                   </div>
-                  <span className="text-[10px] text-[var(--text-muted)] font-normal">Explore AI</span>
+                  <span className="text-[10px] text-[var(--text-muted)] font-normal">{t.nav.discoveryHint}</span>
                 </button>
 
                 <button
@@ -223,7 +223,7 @@ export function WorkspaceHeader({
                     <Compass className="w-4 h-4 text-[var(--text-primary)]" />
                     <span>{t.nav.catalog}</span>
                   </div>
-                  <span className="text-[10px] text-[var(--text-muted)] font-normal">300+ Tropes</span>
+                  <span className="text-[10px] text-[var(--text-muted)] font-normal">{t.nav.catalogHint}</span>
                 </button>
 
                 <button

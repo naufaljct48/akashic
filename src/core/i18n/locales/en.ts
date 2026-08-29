@@ -22,6 +22,8 @@ export const en: Translations = {
     quickSearch: 'Quick search...',
     mainMenu: 'Main Navigation',
     quickFeeds: 'Quick Feeds',
+    discoveryHint: 'AI Curated',
+    catalogHint: '300+ Tropes',
   },
   feeds: {
     curated: 'AI Discovery',
