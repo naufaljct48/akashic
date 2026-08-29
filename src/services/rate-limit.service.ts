@@ -5,7 +5,7 @@ const RATE_LIMIT_STORAGE_KEY = 'akashic_daily_rate_limit';
  * Function (MAX_DAILY_PROMPTS, per hashed IP) — anything in localStorage is
  * trivially reset by the user, so it must never be the real gate.
  */
-export const MAX_DAILY_PROMPTS = 30;
+export const MAX_DAILY_PROMPTS = 10;
 
 export interface RateLimitStatus {
   date: string;

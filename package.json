@@ -11,9 +11,10 @@
     "ingest:massive": "bun scripts/ingest-massive.ts",
     "ingest:10k": "bun scripts/ingest-10k.ts",
     "seed": "bun scripts/seed-mock-data.ts",
+    "secret": "bun scripts/set-secret.ts",
     "heal:covers": "bun scripts/fix-all-covers.ts",
     "ingest:trending": "bun scripts/ingest-trending.ts",
-    "test": "bun src/lib/supabase/filters.test.ts && bun src/core/constants/name-extraction.test.ts",
+    "test": "bun src/lib/supabase/filters.test.ts && bun src/core/constants/name-extraction.test.ts && bun src/core/types/bookmark.test.ts",
     "test:filters": "bun scripts/verify-catalog-filters.ts"
   },
   "dependencies": {

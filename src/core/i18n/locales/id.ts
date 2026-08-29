@@ -139,6 +139,9 @@ export const id = {
       'Tandai komik favorit lo dari tab Jelajah atau Katalog buat disimpan di library offline lokal ini.',
     exploreCatalog: 'Jelajahi Katalog',
     progress: 'Progres',
+    export: 'Ekspor',
+    import: 'Impor',
+    importFailed: 'File itu bukan ekspor bookmark Akashic.',
   },
   about: {
     badge: 'Mesin Penemuan Semantik',

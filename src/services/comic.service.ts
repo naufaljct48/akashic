@@ -258,8 +258,19 @@ async function retrieveSemanticCandidates(
     }
   }
 
+  // Dedup on source_id, not id. The same title reaches this pool under two
+  // different ids — a UUID from the catalog and `anilist-<n>` from a live probe
+  // — so keying on id shows it twice and lets it be bookmarked twice. source_id
+  // is AniList's own id and is populated on both. Catalog rows win: they carry
+  // the slug and cover the inspector needs.
+  const keyOf = (c: Comic) => (c.source_id ? `src:${c.source_id}` : c.id);
   const addAll = (rows: Comic[] | null | undefined) => {
-    for (const row of rows || []) candidateMap.set(row.id, row);
+    for (const row of rows || []) {
+      const key = keyOf(row);
+      const seen = candidateMap.get(key);
+      if (seen && !seen.id.startsWith('anilist-')) continue;
+      candidateMap.set(key, row);
+    }
   };
 
   const cleanQuery = lowerQ
@@ -468,24 +479,46 @@ function generateFallbackReason(comic: any, query: string, locale: 'id' | 'en'):
     : `Recommended based on ${comic.genres?.join(', ')} themes and high rating (${comic.average_score}/100).`;
 }
 
+/** Well-reviewed enough to be worth a stranger's time. */
+const GEM_MIN_SCORE = 78;
+
+/**
+ * …and obscure enough to actually be a discovery. This ceiling is the whole
+ * point of the feature: 608 titles clear the score floor, but the old query
+ * ordered them by popularity DESC and read a random 16-row window out of the
+ * first 100, so it could only ever reach the 115 most famous of them. The least
+ * known title it could return sat at 39k popularity; a 86-scored, 11k-popularity
+ * title was unreachable by construction. "Surprise Me" was a top-100 shuffler.
+ */
+const GEM_MAX_POPULARITY = 20000;
+
 export async function getRandomGemComic(type?: ComicType | 'ALL'): Promise<Comic | null> {
-  try {
-    const randomOffset = Math.floor(Math.random() * 100);
-    let query = (supabase.from('comics') as any)
+  // A random UUID as a cursor rather than a random offset. Row ids are v4, so
+  // ordering by id is already a shuffle, and `id > cursor` samples the entire
+  // eligible set uniformly in one round trip — no COUNT needed, and no fixed
+  // window to trap the result in. Wrap to `id < cursor` for the tail of the
+  // keyspace, where the cursor lands past the last row.
+  const cursor = crypto.randomUUID();
+
+  const page = async (ascending: boolean): Promise<Comic[]> => {
+    let q = (supabase.from('comics') as any)
       .select('*')
-      .gte('average_score', 78)
-      .order('popularity', { ascending: false, nullsFirst: false })
-      .range(randomOffset, randomOffset + 15);
+      .gte('average_score', GEM_MIN_SCORE)
+      .lt('popularity', GEM_MAX_POPULARITY);
 
-    if (type && type !== 'ALL') {
-      query = query.eq('type', type);
-    }
+    q = ascending ? q.gt('id', cursor) : q.lt('id', cursor);
+    q = q.order('id', { ascending }).limit(16);
 
-    const { data } = await query;
-    if (data && data.length > 0) {
-      const randomIndex = Math.floor(Math.random() * data.length);
-      return data[randomIndex] as Comic;
-    }
+    if (type && type !== 'ALL') q = q.eq('type', type);
+
+    const { data } = await q;
+    return (data as Comic[]) || [];
+  };
+
+  try {
+    let rows = await page(true);
+    if (rows.length === 0) rows = await page(false);
+    if (rows.length > 0) return rows[Math.floor(Math.random() * rows.length)];
   } catch (err) {
     console.error('Failed to fetch random gem comic:', err);
   }

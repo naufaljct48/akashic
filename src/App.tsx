@@ -76,6 +76,11 @@ function AppContent() {
     });
   };
 
+  const replaceBookmarks = (next: BookmarkMap) => {
+    saveStoredBookmarks(next);
+    setBookmarks(next);
+  };
+
   const handleSelectFromSpotlight = (comic: Comic) => {
     setSpotlightSelectedComic(comic as ComicSearchResult);
     setActiveTab('discovery');
@@ -121,6 +126,7 @@ function AppContent() {
             bookmarks={bookmarks}
             onUpdateBookmarkStatus={updateBookmarkStatus}
             onNavigateToCatalog={() => setActiveTab('catalog')}
+            onReplaceBookmarks={replaceBookmarks}
           />
         </Suspense>
       )}

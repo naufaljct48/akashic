@@ -12,7 +12,9 @@ interface CommandSearchBarProps {
   onTypeChange: (t: ComicType | 'ALL') => void;
   isLoading: boolean;
   rateLimitRemaining: number;
-  maxRateLimit?: number;
+  /** Required: a default here silently disagreed with MAX_DAILY_PROMPTS and
+   *  rendered "Quota: 30/10". The counter has exactly one source of truth. */
+  maxRateLimit: number;
   onSurpriseMe?: () => void;
   isRollingGacha?: boolean;
 }
@@ -25,7 +27,7 @@ export function CommandSearchBar({
   onTypeChange,
   isLoading,
   rateLimitRemaining,
-  maxRateLimit = 10,
+  maxRateLimit,
   onSurpriseMe,
   isRollingGacha = false,
 }: CommandSearchBarProps) {

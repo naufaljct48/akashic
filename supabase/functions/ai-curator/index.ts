@@ -7,7 +7,7 @@ const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') || '')
   .map((o) => o.trim())
   .filter(Boolean);
 
-const MAX_DAILY_PROMPTS = Number(Deno.env.get('MAX_DAILY_PROMPTS') || '30');
+const MAX_DAILY_PROMPTS = Number(Deno.env.get('MAX_DAILY_PROMPTS') || '10');
 
 /** Retrieval hands over a wide pool; the model does the actual discriminating. */
 const MAX_CANDIDATES = 24;
@@ -215,43 +215,134 @@ serve(async (req) => {
       return json({ error: 'Daily AI quota exceeded' }, 429, origin);
     }
 
-    const AI_API_KEY = await getSecret('AI_API_KEY');
-    const AI_BASE_URL = await getSecret('AI_BASE_URL', 'https://api.b.ai/v1');
-    const AI_MODEL = await getSecret('AI_MODEL', 'deepseek-v4-flash');
+    // Three providers, tried in order. An attempt is (base, key, model) rather
+    // than a bare model id because the chain crosses provider boundaries — the
+    // whole point is surviving one of them being down, which is not hypothetical:
+    // b.ai has answered 503 for this entire session.
+    const csv = (v: string) => v.split(',').map((m) => m.trim()).filter(Boolean);
 
-    if (!AI_API_KEY) {
-      return json({ error: 'AI_API_KEY not configured on server' }, 500, origin);
+    const providers = [
+      {
+        key: await getSecret('AI_API_KEY'),
+        base: await getSecret('AI_BASE_URL', 'https://api.b.ai/v1'),
+        models: csv(await getSecret('AI_MODEL', 'deepseek-v4-flash')),
+      },
+      {
+        key: await getSecret('OPENROUTER_API_KEY'),
+        base: await getSecret('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'),
+        // Free models are rate-limited upstream by whoever hosts them, so one id
+        // is a single point of failure — two of them is not redundancy for its
+        // own sake, it is what makes the free tier usable at all.
+        models: csv(
+          await getSecret('OPENROUTER_MODELS', 'minimax/minimax-m3:free,minimax/minimax-m2.7:free')
+        ),
+      },
+      {
+        key: await getSecret('MISTRAL_API_KEY'),
+        base: await getSecret('MISTRAL_BASE_URL', 'https://api.mistral.ai/v1'),
+        models: csv(await getSecret('MISTRAL_MODELS', 'mistral-small-2603')),
+      },
+    ];
+
+    // A provider with no key configured is skipped, not an error: this has to
+    // stand up with only the primary set.
+    const attempts = providers.flatMap((p) =>
+      p.key ? p.models.map((model) => ({ base: p.base, key: p.key, model })) : []
+    );
+
+    if (attempts.length === 0) {
+      return json({ error: 'No AI provider configured on server' }, 500, origin);
     }
 
     const systemInstruction = buildSystemInstruction(locale);
+    const userContent = `User Query: "${query}"\nCandidates:\n${JSON.stringify(candidates)}`;
+    const candidateIds = new Set(candidates.map((c) => c.id));
 
-    const aiRes = await fetch(`${AI_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${AI_API_KEY}` },
-      body: JSON.stringify({
-        model: AI_MODEL,
-        messages: [
-          { role: 'system', content: systemInstruction },
-          {
-            role: 'user',
-            content: `User Query: "${query}"\nCandidates:\n${JSON.stringify(candidates)}`,
+    // The browser aborts at 45s (see deepseek.service.ts). Walking the chain
+    // past that is pure waste — the answer arrives after nobody is listening —
+    // and measured models range from 2s to 69s, so the budget has to be
+    // enforced here rather than hoped for.
+    const deadline = Date.now() + 40_000;
+    let lastFailure = 'no attempt made';
+
+    for (const attempt of attempts) {
+      const budget = Math.min(25_000, deadline - Date.now());
+      if (budget < 2_000) {
+        lastFailure = `${lastFailure}; out of time before ${attempt.model}`;
+        break;
+      }
+
+      // One try around the whole attempt, including the body read: an aborted
+      // request can clear the headers and then throw while streaming, which
+      // outside a catch kills the entire chain instead of advancing it.
+      try {
+        const aiRes = await fetch(`${attempt.base}/chat/completions`, {
+          method: 'POST',
+          signal: AbortSignal.timeout(budget),
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${attempt.key}`,
+            // OpenRouter attribution. Ignored by other providers.
+            'HTTP-Referer': 'https://akashic-lime.vercel.app',
+            'X-Title': 'Akashic Dex',
           },
-        ],
-        response_format: { type: 'json_object' },
-        // Reasoning models bill their thinking against max_tokens. A 24-candidate
-        // pool burned all 3000 on reasoning_content and returned an empty
-        // `content`, so every full-size query silently fell back to the
-        // deterministic matcher. Leave headroom for the answer itself.
-        max_tokens: 8000,
-        temperature: 0.3,
-      }),
-    });
+          body: JSON.stringify({
+            model: attempt.model,
+            messages: [
+              { role: 'system', content: systemInstruction },
+              { role: 'user', content: userContent },
+            ],
+            response_format: { type: 'json_object' },
+            // Reasoning models bill their thinking against max_tokens. A
+            // 24-candidate pool burned all 3000 on reasoning and returned an
+            // empty `content`, so every full-size query silently fell back to
+            // the deterministic matcher. Leave headroom for the answer itself.
+            max_tokens: 8000,
+            temperature: 0.3,
+          }),
+        });
 
-    if (!aiRes.ok) {
-      return json({ error: `Upstream AI error ${aiRes.status}` }, 502, origin);
+        if (!aiRes.ok) {
+          lastFailure = `${attempt.model}: upstream ${aiRes.status}`;
+          continue;
+        }
+
+        const payload = await aiRes.json();
+        const content = payload?.choices?.[0]?.message?.content;
+
+        // Everything below is a failure the client cannot tell apart from a
+        // success, which is exactly why it has to be caught here. A 200 carrying
+        // an unusable body would end the chain and strand the user on the
+        // deterministic fallback, with a working model one position away.
+        if (!content) {
+          // What a reasoning model returns when it spends the budget thinking.
+          lastFailure = `${attempt.model}: empty content`;
+          continue;
+        }
+
+        // Truncated JSON — measured on a model that burnt 8.9k tokens reasoning
+        // and hit finish_reason=length mid-object.
+        const parsed = JSON.parse(content) as { matches?: Array<{ id?: string }> };
+
+        // Smaller models invent plausible-looking ids. The client silently drops
+        // any id it cannot find, so an all-hallucinated answer reaches the user
+        // as an empty result with no error anywhere. We hold the candidate list
+        // here — check it here.
+        const real = (parsed.matches || []).filter((m) => m?.id && candidateIds.has(m.id)).length;
+        if (real === 0) {
+          lastFailure = `${attempt.model}: no valid candidate ids`;
+          continue;
+        }
+
+        return json(payload, 200, origin);
+      } catch (err) {
+        lastFailure = `${attempt.model}: ${err}`;
+        continue;
+      }
     }
 
-    return json(await aiRes.json(), 200, origin);
+    console.error('[ai-curator] every provider failed:', lastFailure);
+    return json({ error: `Upstream AI error (${lastFailure})` }, 502, origin);
   } catch (err) {
     console.error('[ai-curator]', err);
     return json({ error: 'Internal error' }, 500, origin);

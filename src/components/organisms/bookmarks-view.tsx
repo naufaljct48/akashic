@@ -1,12 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Bookmark, BookOpen, Clock, CheckCircle } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Bookmark, BookOpen, Clock, CheckCircle, Download, Upload } from 'lucide-react';
 import { ComicGridView } from '@/components/organisms/comic-grid-view';
 import { ComicInspector } from '@/components/organisms/comic-inspector';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/core/i18n/context';
 import { supabase } from '@/lib/supabase/client';
 import { findComicByTitle, PAGE_SIZE } from '@/services/comic.service';
-import type { BookmarkMap, ReadingStatus } from '@/core/types/bookmark';
+import {
+  exportBookmarks,
+  importBookmarks,
+  type BookmarkMap,
+  type ReadingStatus,
+} from '@/core/types/bookmark';
 import type { ComicSearchResult } from '@/core/types/comic';
 import { cn } from '@/lib/utils/cn';
 
@@ -15,13 +20,17 @@ interface BookmarksViewProps {
   bookmarks: BookmarkMap;
   onUpdateBookmarkStatus?: (id: string, status: ReadingStatus, progress?: number) => void;
   onNavigateToCatalog: () => void;
+  onReplaceBookmarks: (next: BookmarkMap) => void;
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function BookmarksView({
   onToggleBookmark,
   bookmarks,
   onUpdateBookmarkStatus,
   onNavigateToCatalog,
+  onReplaceBookmarks,
 }: BookmarksViewProps) {
   const { t } = useI18n();
   const [bookmarkedComics, setBookmarkedComics] = useState<ComicSearchResult[]>([]);
@@ -33,6 +42,18 @@ export function BookmarksView({
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const bookmarkedIds = Object.keys(bookmarks);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleImportFile = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      onReplaceBookmarks(await importBookmarks(file, bookmarks));
+      setImportError(null);
+    } catch {
+      setImportError(t.bookmarks.importFailed);
+    }
+  };
 
   useEffect(() => {
     async function loadBookmarks() {
@@ -44,17 +65,45 @@ export function BookmarksView({
       }
 
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('comics')
-        .select('*')
-        .in('id', bookmarkedIds);
 
-      if (!error && data) {
-        const casted = data as ComicSearchResult[];
-        setBookmarkedComics(casted);
-        if (casted.length > 0 && !selectedComic && typeof window !== 'undefined' && window.innerWidth >= 1024) {
-          setSelectedComic(casted[0]);
-        }
+      // Bookmark ids come in two shapes. Catalog picks are UUIDs; anything
+      // saved from a live AniList feed (Trending / Recently Updated / New
+      // Releases) is keyed `anilist-<n>`. Handing one of those to .in('id', …)
+      // makes Postgres reject the ENTIRE query as an invalid uuid, so a single
+      // Trending bookmark used to blank the whole library — silently, because
+      // the error branch just left the list empty.
+      const catalogIds = bookmarkedIds.filter((id) => UUID_RE.test(id));
+      const liveSourceIds = bookmarkedIds
+        .filter((id) => id.startsWith('anilist-'))
+        .map((id) => Number(id.slice('anilist-'.length)))
+        .filter((n) => Number.isFinite(n));
+
+      const rows: ComicSearchResult[] = [];
+
+      if (catalogIds.length > 0) {
+        const { data } = await (supabase.from('comics') as any).select('*').in('id', catalogIds);
+        rows.push(...((data as ComicSearchResult[]) || []));
+      }
+
+      // The same title usually IS in the catalog under a different id, so look
+      // it up by AniList's own id and hand back the row wearing the bookmark's
+      // key — otherwise the status pill and the un-bookmark button look for an
+      // entry that isn't in the map.
+      if (liveSourceIds.length > 0) {
+        const { data } = await (supabase.from('comics') as any)
+          .select('*')
+          .in('source_id', liveSourceIds);
+        rows.push(
+          ...((data as ComicSearchResult[]) || []).map((c) => ({
+            ...c,
+            id: `anilist-${c.source_id}`,
+          }))
+        );
+      }
+
+      setBookmarkedComics(rows);
+      if (rows.length > 0 && !selectedComic && typeof window !== 'undefined' && window.innerWidth >= 1024) {
+        setSelectedComic(rows[0]);
       }
       setIsLoading(false);
     }
@@ -109,11 +158,46 @@ export function BookmarksView({
       <main className="flex-1 flex flex-col h-full overflow-y-auto px-4 sm:px-6 py-5 gap-4 pb-24 lg:pb-8">
         {/* Header Title & Status Filter Pills */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-[var(--border-subtle)] font-mono-data text-xs">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Bookmark className="w-4 h-4 text-[#ff334b] fill-current" />
             <span className="text-[var(--text-primary)] font-semibold uppercase">
               {t.bookmarks.title} ({bookmarkedComics.length})
             </span>
+
+            {/* The library lives in localStorage, so a file the user keeps is
+                the only backup that exists. Native file input, no dependency. */}
+            <button
+              type="button"
+              onClick={() => exportBookmarks(bookmarks)}
+              disabled={bookmarkedIds.length === 0}
+              className="flex items-center gap-1 px-2 py-1 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-muted)] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Download className="w-3 h-3" />
+              {t.bookmarks.export}
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1 px-2 py-1 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-surface-raised)] text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-muted)] transition-colors cursor-pointer"
+            >
+              <Upload className="w-3 h-3" />
+              {t.bookmarks.import}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                void handleImportFile(e.target.files?.[0]);
+                e.target.value = '';
+              }}
+            />
+            {/* w-full: wraps to its own line instead of squeezing the status
+                pills in the row opposite. */}
+            {importError && (
+              <span className="w-full text-[10px] text-[#ff334b]">{importError}</span>
+            )}
           </div>
 
           {/* Reading Status Filter Pills */}

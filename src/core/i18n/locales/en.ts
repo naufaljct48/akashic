@@ -141,6 +141,9 @@ export const en: Translations = {
       'Bookmark your favorite comics from Discovery or Catalog tabs to store them in this local offline library.',
     exploreCatalog: 'Explore Catalog',
     progress: 'Progress',
+    export: 'Export',
+    import: 'Import',
+    importFailed: 'That file is not an Akashic bookmark export.',
   },
   about: {
     badge: 'Semantic Discovery Engine',

@@ -8,6 +8,7 @@ import { useI18n } from '@/core/i18n/context';
 import {
   searchComicsSemantic,
   getComics,
+  getComicBySlug,
   getRandomGemComic,
   findComicByTitle,
   PAGE_SIZE,
@@ -18,7 +19,11 @@ import {
   fetchLiveNewReleases,
   type TrendingWindow,
 } from '@/services/anilist-live.service';
-import { getRateLimitStatus, incrementRateLimit } from '@/services/rate-limit.service';
+import {
+  getRateLimitStatus,
+  incrementRateLimit,
+  MAX_DAILY_PROMPTS,
+} from '@/services/rate-limit.service';
 import type { BookmarkMap, ReadingStatus } from '@/core/types/bookmark';
 import type { ComicSearchResult, ComicType } from '@/core/types/comic';
 import { cn } from '@/lib/utils/cn';
@@ -56,6 +61,15 @@ export function DiscoveryWorkspace({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [rateLimit, setRateLimit] = useState(getRateLimitStatus());
+
+  // Deep link: ?c=<slug>. Read once, lazily, so the writer effect below cannot
+  // feed its own output back in. There is no router in this app and this does
+  // not need one — a discovery engine whose finds cannot be shared is throwing
+  // away its cheapest growth loop, and that costs one query param.
+  const [deepLinkSlug] = useState(() =>
+    typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('c')
+  );
+  const urlSyncReady = useRef(false);
 
   // Paging state. Refs, not state, so loadMore never fires against a stale page.
   const pageRef = useRef(1);
@@ -184,7 +198,13 @@ export function DiscoveryWorkspace({
     }
     // A spotlight pick arrives with this component's very first render; don't
     // let the feed that loads behind it steal the inspector.
-    loadFeedData(feedMode, selectedType, trendingWindow, 1, !externalSelectedComic);
+    loadFeedData(
+      feedMode,
+      selectedType,
+      trendingWindow,
+      1,
+      !externalSelectedComic && !deepLinkSlug
+    );
   }, [initialPrompt]);
 
   // Handle Semantic Discovery Query (AI Powered)
@@ -253,6 +273,42 @@ export function DiscoveryWorkspace({
       console.error('Failed to open related title:', err);
     }
   };
+
+  // Resolve the deep link. getComicBySlug covers the catalog; findComicByTitle
+  // falls through to AniList, which is how a link to a live-only title still
+  // opens for the person it was sent to.
+  useEffect(() => {
+    if (!deepLinkSlug) {
+      urlSyncReady.current = true;
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const found =
+        (await getComicBySlug(deepLinkSlug)) ??
+        (await findComicByTitle(deepLinkSlug.replace(/-/g, ' ')));
+      if (cancelled) return;
+      if (found) {
+        const hit = found as ComicSearchResult;
+        setResults((prev) => [hit, ...prev.filter((p) => p.id !== hit.id)]);
+        setSelectedComic(hit);
+      }
+      urlSyncReady.current = true;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [deepLinkSlug]);
+
+  // replaceState, not pushState: opening cards is browsing, not navigation, and
+  // filling the back stack with inspector opens makes Back useless.
+  useEffect(() => {
+    if (!urlSyncReady.current) return;
+    const url = new URL(window.location.href);
+    if (selectedComic?.slug) url.searchParams.set('c', selectedComic.slug);
+    else url.searchParams.delete('c');
+    window.history.replaceState(null, '', url);
+  }, [selectedComic]);
 
   const handleFeedModeChange = async (mode: FeedMode) => {
     setFeedMode(mode);
@@ -324,6 +380,7 @@ export function DiscoveryWorkspace({
           onTypeChange={handleTypeChange}
           isLoading={isLoading}
           rateLimitRemaining={rateLimit.remaining}
+          maxRateLimit={MAX_DAILY_PROMPTS}
           onSurpriseMe={handleSurpriseMe}
           isRollingGacha={isRollingGacha}
         />
