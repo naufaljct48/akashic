@@ -212,3 +212,41 @@ export async function embedBatch(texts: string[], retries = 3): Promise<number[]
 
   throw new Error('unreachable');
 }
+
+/**
+ * Mirrors the translation step in supabase/functions/ai-curator/index.ts.
+ *
+ * Duplicated rather than shared because that function runs on Deno and cannot
+ * import from scripts/. Keep the model, the system prompt and the length guard
+ * identical, or eval-recall stops measuring what production does.
+ */
+export async function translateToEnglish(query: string): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct`,
+      {
+        method: 'POST',
+        signal: AbortSignal.timeout(4_000),
+        headers: { Authorization: `Bearer ${API_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content:
+                'Translate the user text to English. Reply with the translation only: ' +
+                'no quotes, no notes, no preamble. If it is already English, repeat it unchanged.',
+            },
+            { role: 'user', content: query },
+          ],
+          max_tokens: 120,
+        }),
+      }
+    );
+    if (!res.ok) return query;
+    const body = (await res.json()) as { success: boolean; result?: { response?: string } };
+    const out = body?.success ? (body.result?.response ?? '').trim() : '';
+    return out.length > 0 && out.length <= 300 ? out : query;
+  } catch {
+    return query;
+  }
+}

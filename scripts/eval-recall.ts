@@ -1,5 +1,5 @@
 import { supabase } from './supabase-admin';
-import { embedAdaptive } from './workers-ai';
+import { embedAdaptive, translateToEnglish } from './workers-ai';
 
 /**
  * Retrieval quality, measured.
@@ -51,8 +51,21 @@ const CASES: Case[] = [
 const POOL = 50;
 
 async function main() {
+  // `--translate` mirrors what the Edge Function does for locale 'id'. Run it
+  // both ways to see what the translation step is actually worth.
+  const translate = process.argv.includes('--translate');
+  const texts = translate
+    ? await Promise.all(CASES.map((c) => translateToEnglish(c.query)))
+    : CASES.map((c) => c.query);
+
+  console.log(
+    translate
+      ? '\nmode: query translated to English first (matches the Edge Function for locale "id")'
+      : '\nmode: query embedded as written'
+  );
+
   // One request for every query: they are short, and the batch is trivial.
-  const vectors = await embedAdaptive(CASES.map((c) => c.query));
+  const vectors = await embedAdaptive(texts);
 
   const ranks: (number | null)[] = [];
 

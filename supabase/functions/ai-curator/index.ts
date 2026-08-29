@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { mergeCandidates, VECTOR_SHARE } from './merge.ts';
 
 // Comma-separated allowlist, e.g. "https://akashic.vercel.app,http://localhost:5173".
 // Unset = allow any origin (CORS is not a real gate anyway; the rate limiter below is).
@@ -10,7 +11,7 @@ const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') || '')
 const MAX_DAILY_PROMPTS = Number(Deno.env.get('MAX_DAILY_PROMPTS') || '10');
 
 /** Retrieval hands over a wide pool; the model does the actual discriminating. */
-const MAX_CANDIDATES = 24;
+const MAX_CANDIDATES = 32;
 
 function corsHeaders(origin: string | null) {
   const allow =
@@ -116,6 +117,118 @@ async function getSecret(key: string, fallback: string = ''): Promise<string> {
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * Vector retrieval
+ *
+ * The catalog carries a bge-m3 embedding per title and match_comics_hybrid
+ * searches them. That RPC is service-role only, so this is the one place it can
+ * be called from -- which is also where the provider keys already live.
+ *
+ * Everything below fails soft. If Workers AI is down, if the RPC errors, if a
+ * timeout fires, the request continues with the candidates the client sent.
+ * Search getting worse is survivable; search throwing is not.
+ * ------------------------------------------------------------------ */
+
+const EMBED_MODEL = '@cf/baai/bge-m3';
+const TRANSLATE_MODEL = '@cf/meta/llama-3.1-8b-instruct';
+
+async function workersAI(model: string, payload: unknown, timeoutMs: number) {
+  const account = await getSecret('CLOUDFLARE_ACCOUNT_ID');
+  const token = await getSecret('CLOUDFLARE_API_TOKEN');
+  if (!account || !token) return null;
+
+  try {
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${account}/ai/run/${model}`,
+      {
+        method: 'POST',
+        signal: AbortSignal.timeout(timeoutMs),
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }
+    );
+    if (!res.ok) return null;
+    const body = await res.json();
+    return body?.success ? body.result : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * bge-m3 is genuinely multilingual, but multilingual is not the same as
+ * cross-lingual at scale. Measured on the real catalog with scripts/eval-recall.ts:
+ * an Indonesian query and its English translation retrieve very differently once
+ * there are ~18,000 English documents to rank against. Chainsaw Man, Tower of God
+ * and Goodnight Punpun were all absent from the top 50 in Indonesian and came back
+ * at #1, #3 and #7 in English.
+ *
+ * The vectors are not wrong -- an Indonesian query simply sits slightly off the
+ * English document cluster, and a small constant offset is enough to scramble
+ * ranking in a large pool. Translating first puts the query in the same
+ * neighbourhood as the documents.
+ *
+ * Returns the original text on any failure, which costs recall but never the
+ * request.
+ */
+async function toEnglish(query: string): Promise<string> {
+  const result = await workersAI(
+    TRANSLATE_MODEL,
+    {
+      messages: [
+        {
+          role: 'system',
+          content:
+            'Translate the user text to English. Reply with the translation only: ' +
+            'no quotes, no notes, no preamble. If it is already English, repeat it unchanged.',
+        },
+        { role: 'user', content: query },
+      ],
+      max_tokens: 120,
+    },
+    4_000
+  );
+
+  const out = typeof result?.response === 'string' ? result.response.trim() : '';
+  // A chatty model that ignored the instruction produces something far longer
+  // than any search phrase; that is worse than not translating.
+  return out.length > 0 && out.length <= 300 ? out : query;
+}
+
+async function embedQuery(text: string): Promise<number[] | null> {
+  const result = await workersAI(EMBED_MODEL, { text: [text] }, 5_000);
+  const vector = result?.data?.[0];
+  return Array.isArray(vector) && vector.length === 1024 ? vector : null;
+}
+
+async function vectorMatches(embedding: number[], count: number): Promise<any[]> {
+  const url = Deno.env.get('SUPABASE_URL');
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !serviceKey) return [];
+
+  try {
+    const res = await fetch(`${url}/rest/v1/rpc/match_comics_hybrid`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(5_000),
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({
+        query_embedding: embedding,
+        match_threshold: 0.45,
+        match_count: count,
+      }),
+    });
+    if (!res.ok) return [];
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * The old instruction was a single line ("select 6-8 best matching titles"),
  * which gave the model no domain footing and no way to honour hard constraints —
@@ -204,15 +317,39 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const query = str(body?.query, 160);
-    const candidates = sanitizeCandidates(body?.candidates);
+    const clientCandidates = sanitizeCandidates(body?.candidates);
     const locale = body?.locale === 'en' ? 'en' : 'id';
 
-    if (!query || candidates.length === 0) {
+    if (!query || clientCandidates.length === 0) {
       return json({ error: 'query and candidates are required' }, 400, origin);
     }
 
     if (!(await withinRateLimit(req))) {
       return json({ error: 'Daily AI quota exceeded' }, 429, origin);
+    }
+
+    // Widen the pool with vector search before ranking. Deliberately after the
+    // rate-limit check: a request that is not going to be answered should not
+    // spend Workers AI quota getting there.
+    //
+    // The whole block is best-effort. `candidates` starts as what the client
+    // sent and is only replaced once a full retrieval round has succeeded, so
+    // there is no state in which a partial failure leaves a worse pool than
+    // doing nothing would have.
+    let candidates = clientCandidates;
+    try {
+      const searchText = locale === 'id' ? await toEnglish(query) : query;
+      const embedding = await embedQuery(searchText);
+
+      if (embedding) {
+        const rows = await vectorMatches(embedding, VECTOR_SHARE * 2);
+        if (rows.length > 0) {
+          candidates = sanitizeCandidates(mergeCandidates(body?.candidates, rows));
+        }
+      }
+    } catch (err) {
+      // Never fatal: the deterministic keyword pool still answers the query.
+      console.error('[ai-curator] vector retrieval skipped:', err);
     }
 
     // Three providers, tried in order. An attempt is (base, key, model) rather
