@@ -14,11 +14,12 @@
 
 ## 🌟 Key Features
 
-- 🧠 **DeepSeek AI Semantic Reasoning:** Natural language intent analysis & trope curation (*"Cunning MC like Lloyd Frontera"*, *"Authentic non-regression Murim"*).
+- 🧠 **AI Semantic Reasoning:** Natural language intent analysis & trope curation (*"Cunning MC like Lloyd Frontera"*, *"Authentic non-regression Murim"*), with a multi-provider fallback chain so one provider being down does not take search with it.
+- 🎯 **Vector Semantic Retrieval:** Every title carries a `bge-m3` embedding, so a description finds a story that never uses your words — *"raksasa yang memakan manusia di balik tembok"* returns Attack on Titan. Indonesian queries are translated before retrieval; measured recall@20 is 90%.
 - 🎲 **Surprise Me (Gacha Recommendation):** One-click high-rated hidden gem picker ($\ge 7.8$ score) with animated reveal.
 - 📚 **Personal Reading Status Tracker:** Track your journey with *Reading* (with custom chapter counter), *Plan to Read*, and *Completed* status filters.
 - ⚡ **Dual-Path Instant Search (<80ms):** Direct keyword hits query PostgreSQL directly; nuanced prompts trigger the serverless AI semantic pipeline.
-- 🔍 **Elastic Global Spotlight Search (`Ctrl+K`):** Real-time debounced finder across **6,600+ real titles** with keyboard navigation (`↑`, `↓`, `Enter`, `ESC`).
+- 🔍 **Elastic Global Spotlight Search (`Ctrl+K`):** Real-time debounced finder across **17,900+ real titles** with keyboard navigation (`↑`, `↓`, `Enter`, `ESC`).
 - 🔄 **Real-Time Live Chapter Sync:** Background AniList GraphQL queries ensure real-time chapter counts, release status, and official HD artwork.
 - 🔒 **Serverless Edge Function Security:** AI API keys stay on a Supabase Edge Function that validates and clamps every request and enforces a server-side daily quota per IP.
 - 📱 **Mobile-First PWA & Dual Navigation:** Full Progressive Web App support with service worker offline caching, top hamburger drawer, and sticky bottom navigation.
@@ -34,10 +35,10 @@
 | :--- | :--- |
 | **Runtime & Tooling** | [Bun](https://bun.sh) (Fast JavaScript Runtime & Package Manager) |
 | **Frontend Framework** | React 19 + Vite 6 + TypeScript (Strict Mode) |
-| **Styling & UI** | Tailwind CSS v4 + Plus Jakarta Sans + Geist Mono + Linear/Raycast Design System |
-| **Database** | Supabase Cloud + PostgreSQL 15 (GIN indexes on genres/tags, `pgvector` schema provisioned but retrieval is keyword-based today) |
+| **Styling & UI** | Tailwind CSS v4 + Anton (display) + Plus Jakarta Sans (text), editorial print design system — tinted paper, process inks, halftone screen, no monospace |
+| **Database** | Supabase Cloud + PostgreSQL 15 (GIN indexes on genres/tags; `pgvector` with an HNSW index over 17,900+ embeddings, live) |
 | **Serverless Security** | Supabase Edge Functions (Deno Runtime) |
-| **AI Intelligence** | DeepSeek via OpenAI-compatible REST API |
+| **AI Intelligence** | Ranking: OpenRouter → Mistral → b.ai fallback chain (OpenAI-compatible REST). Embeddings & query translation: Cloudflare Workers AI (`@cf/baai/bge-m3`, `llama-3.1-8b-instruct`) |
 | **Data Backbone** | AniList GraphQL API + MyAnimeList (MAL) Cross-Reference |
 | **CI/CD & Automation** | GitHub Actions (Daily Ingestion Cron) + Vercel Deployment |
 
@@ -86,7 +87,9 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 | `bun run build` | Compile TypeScript & generate optimized production chunks |
 | `bun run preview` | Preview production build locally |
 | `bun run ingest:massive` | Run bulk AniList GraphQL ingestion into Supabase |
-| `bun run ingest:10k` | Run background ingestion worker for up to 10,000 titles |
+| `bun run ingest:10k` | Year-partitioned catalog ingestion (AniList caps any single filter at 5,000 results) |
+| `bun run embed:catalog` | Backfill `comic_embeddings`; resumable, skips rows that already have a vector |
+| `bun run eval:recall` | Measure retrieval quality against a fixed query fixture (`--translate` for the production path) |
 | `bun run ingest:trending` | Run daily automated sync for trending, new, and updated series |
 
 ---

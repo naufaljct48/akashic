@@ -13,8 +13,14 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>
 );
 
-// Register Service Worker for PWA offline support and home screen installability
-if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+// Register Service Worker for PWA offline support and home screen installability.
+//
+// Production only. The worker is network-first, so in dev it caches every
+// HMR module URL for no benefit — and it makes debugging actively misleading:
+// a stale registration keeps serving alongside a hot-reloaded module graph,
+// and transient "used outside its Provider" errors thrown while HMR swaps a
+// context module pile up in the console looking exactly like a real bug.
+if ('serviceWorker' in navigator && import.meta.env.PROD && window.location.protocol.startsWith('http')) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js')

@@ -284,7 +284,7 @@ export async function searchLiveAniList(query: string, maxResults = 5): Promise<
 /**
  * Find comics by what a story *is about*, not by what it is called.
  *
- * The catalog's tag probes only ever reached the ~6,600 ingested rows, so a
+ * The catalog's tag probes only ever reach ingested rows, so a
  * description of a title we had not ingested could not be answered at all —
  * the model can only rank what retrieval hands it, and it is never allowed to
  * invent a title.

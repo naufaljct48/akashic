@@ -145,7 +145,11 @@ export function WorkspaceHeader({
               <span>{issueDate}</span>
             </div>
             <div className="stamp figures flex items-center gap-2 text-[9px] whitespace-nowrap">
-              <span>{t.press.titlesOnFile(TITLES_ON_FILE)}</span>
+              <span>
+                {t.press.titlesOnFile(
+                  `${TITLES_ON_FILE.toLocaleString(locale === 'id' ? 'id-ID' : 'en-US')}+`
+                )}
+              </span>
               <span className="hidden sm:inline opacity-40" aria-hidden>/</span>
               <span className="hidden sm:inline">{t.press.freeNoAccount}</span>
             </div>

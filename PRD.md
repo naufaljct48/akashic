@@ -1,5 +1,18 @@
 # 📜 Product Requirements Document (PRD)
 
+> [!WARNING]
+> **This is the original pre-implementation spec, not a description of the app.**
+> It specifies Next.js 16 App Router, the Vercel AI SDK and RSC; the shipped app
+> is a Vite + React 19 SPA with no router and no Vercel AI SDK. Treat it as the
+> historical brief — read `CLAUDE.md` and the code for what actually exists.
+>
+> What this document called for and the build now has: `pgvector` + HNSW hybrid
+> search is live, over ~17,900 ingested titles. What differs: embeddings are
+> `@cf/baai/bge-m3` at 1024 dimensions on Cloudflare Workers AI, not
+> `text-embedding-3-small` at 1536; and there is no conversational/RAG chat
+> agent — ranking is one stateless call per query.
+
+
 ## Project Name: **Akashic Dex** (Alternative: *Akashic*)
 > **Tagline:** *The All-Knowing Comic Discovery & Semantic Recommendation Engine for Manga, Manhwa, and Manhua.*
 

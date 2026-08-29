@@ -60,7 +60,7 @@ Tropes and narrative nuance are the unit of search, not genres.
 
 **Confirmed today**
 
-- Catalog of **~6,600 real ingested titles** (user-confirmed; the in-app "1,000+" string is
+- Catalog of **17,900+ real ingested titles** (verified against the live table; the in-app string is
   stale copy, not a smaller catalog). A daily GitHub Actions cron syncs trending releases.
 - Data from AniList GraphQL with MyAnimeList cross-reference; some feeds are fetched live in
   the browser and never touch the database.
@@ -99,7 +99,7 @@ Tropes and narrative nuance are the unit of search, not genres.
 
 ## Evidence on Hand
 
-- Real, live catalog data — ~6,600 ingested titles, real cover art, real scores and chapter
+- Real, live catalog data — 17,900+ ingested titles, real cover art, real scores and chapter
   counts, real trending feeds. Screenshots and demos can use actual product data.
 - Working public deployment on Vercel, real GitHub repo with real stars/forks badges.
 - Real AI behavior: genuine match reasons, genuine sub-second direct search.

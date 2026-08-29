@@ -63,7 +63,7 @@ export const en: Translations = {
   spotlight: {
     quickSearch: 'Quick search...',
     placeholder: 'Search comic titles, genres, or tropes instantly...',
-    emptyTitle: 'Type any comic title to search instantly across 6,600+ real titles.',
+    emptyTitle: 'Type any comic title to search instantly across 17,900+ real titles.',
     emptyHint: 'Use ↑ ↓ keys to navigate and Enter to select.',
     noResults: (q: string) =>
       `No results found for "${q}". Press Enter in Discovery tab for AI search.`,
@@ -174,7 +174,7 @@ export const en: Translations = {
     shortDesc: 'An AI-powered semantic comic recommendation engine that reads for nuance, plot tropes, and character vibes — and tells you why each title matches.',
     p1Title: 'AI Semantic & Trope Reasoning',
     p1Desc: 'Search beyond simple keywords. Ask in natural language (e.g. "Cunning MC like Lloyd in a murim world").',
-    p2Title: '6,600+ Manga, Manhwa & Manhua Database',
+    p2Title: '17,900+ Manga, Manhwa & Manhua Database',
     p2Desc: 'Verified catalog with live background chapter sync and official HD covers from AniList & MyAnimeList.',
     p3Title: 'Offline Reading Tracker & Privacy First',
     p3Desc: 'Track your chapters directly in local browser storage with zero login or tracking required.',

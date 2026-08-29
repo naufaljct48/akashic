@@ -61,7 +61,7 @@ export const id = {
   spotlight: {
     quickSearch: 'Cari cepat...',
     placeholder: 'Cari judul komik, genre, atau tropes secara instan...',
-    emptyTitle: 'Ketik judul komik apa saja untuk mencari langsung di antara 6.600+ data real.',
+    emptyTitle: 'Ketik judul komik apa saja untuk mencari langsung di antara 17.900+ data real.',
     emptyHint: 'Gunakan tombol ↑ ↓ untuk navigasi dan Enter untuk memilih.',
     noResults: (q: string) =>
       `Tidak ada hasil untuk "${q}". Tekan Enter di tab Jelajah untuk pencarian AI.`,
@@ -172,7 +172,7 @@ export const id = {
     shortDesc: 'Mesin rekomendasi & kurasi komik berbasis AI yang paham alur cerita, formula trope, dan vibes karakter — lengkap dengan alasan kenapa tiap judul cocok.',
     p1Title: 'Pencarian AI Berbasis Tropes',
     p1Desc: 'Bukan cuma cocok kata kunci. Tanya AI dengan bahasa santai (misal: "MC licik kayak Lloyd tapi setting murim").',
-    p2Title: '6.600+ Database Manga, Manhwa & Manhua',
+    p2Title: '17.900+ Database Manga, Manhwa & Manhua',
     p2Desc: 'Katalog terverifikasi dengan data live chapter & artwork HD resmi dari AniList & MyAnimeList.',
     p3Title: 'Pelacak Bacaan Offline & Privasi Terjaga',
     p3Desc: 'Simpan progress bacaan lo langsung di browser secara lokal tanpa perlu ribet bikin akun/login.',

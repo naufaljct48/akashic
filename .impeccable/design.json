@@ -210,7 +210,7 @@
       "kind": "custom",
       "refersTo": "issue-strip",
       "description": "The reversed band under the masthead saying which edition you are holding. Issue number is the ISO week, read from the calendar.",
-      "html": "<div class=\"ds-strip\"><div class=\"ds-strip-left\"><span>WEEKLY EDITION</span><span class=\"ds-strip-sep\">/</span><span>NO. 35</span><span class=\"ds-strip-sep\">/</span><span>29 AUG 2026</span></div><div><span>6,600+ TITLES ON FILE</span></div></div>",
+      "html": "<div class=\"ds-strip\"><div class=\"ds-strip-left\"><span>WEEKLY EDITION</span><span class=\"ds-strip-sep\">/</span><span>NO. 35</span><span class=\"ds-strip-sep\">/</span><span>29 AUG 2026</span></div><div><span>17,900+ TITLES ON FILE</span></div></div>",
       "css": ".ds-strip { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 26px; padding: 0 24px; background: var(--ink, #16130f); color: var(--paper, #e4ddcd); font-family: 'Archivo', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.11em; font-variant-numeric: tabular-nums; font-size: 9px; white-space: nowrap; overflow: hidden; } .ds-strip-left { display: flex; align-items: center; gap: 12px; } .ds-strip-sep { opacity: 0.4; }"
     },
     {

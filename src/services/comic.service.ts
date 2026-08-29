@@ -137,7 +137,7 @@ export async function findComicByTitle(title: string): Promise<ComicSearchResult
  * The finder's lookup: the catalog first, AniList only when the catalog is empty.
  *
  * The spotlight used to query `getComics` alone, so anything outside the
- * ingested ~6,600 rows simply did not exist to it — "Accel World" and "Guilty
+ * ingested rows simply did not exist to it — "Accel World" and "Guilty
  * Crown" returned nothing even though AniList carries both. Every other search
  * path in this file already falls through to AniList; this one never did.
  *

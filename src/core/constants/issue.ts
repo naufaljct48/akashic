@@ -11,5 +11,12 @@ export function isoWeek(date: Date): number {
   return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
-/** Titles ingested into the catalog. Confirmed figure, not a rounded guess. */
-export const TITLES_ON_FILE = '6,600+';
+/**
+ * Titles ingested into the catalog. A verified floor, not a rounded guess --
+ * the live table holds slightly more and the daily sync only adds.
+ *
+ * Kept as a number so each locale can group it its own way: Indonesian
+ * separates thousands with a period, and a pre-formatted string is
+ * necessarily wrong in one of the two languages.
+ */
+export const TITLES_ON_FILE = 17_900;
