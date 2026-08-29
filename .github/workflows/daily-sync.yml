@@ -1,0 +1,55 @@
+name: Daily Trending & Releases Ingestion
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every day
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+# A slow ingest must not overlap with the next scheduled run.
+concurrency:
+  group: daily-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      # v4 pins Node 20, which GitHub now force-upgrades to 24 with a
+      # deprecation warning on every run. v5 targets Node 24 directly.
+      - name: Checkout Code
+        uses: actions/checkout@v5
+
+      # Fail loudly and specifically. The previous run died inside the ingest
+      # script with a stack trace, which reads like a code bug rather than
+      # "someone needs to add a repository secret".
+      - name: Verify Required Secrets
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          missing=""
+          [ -z "$SUPABASE_URL" ] && missing="$missing SUPABASE_URL"
+          [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] && missing="$missing SUPABASE_SERVICE_ROLE_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing"
+            echo "Add them under Settings > Secrets and variables > Actions > New repository secret."
+            echo "SUPABASE_URL is your project URL (https://<ref>.supabase.co)."
+            echo "SUPABASE_SERVICE_ROLE_KEY is under Project Settings > API. Never commit it."
+            exit 1
+          fi
+          echo "Both secrets are present."
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Ingest Fresh Trending, Chapter Updates, and New Releases
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: bun run ingest:trending

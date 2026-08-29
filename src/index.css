@@ -1,0 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root, html.dark {
+  color-scheme: dark;
+  --bg-canvas: #09090b;
+  --bg-surface: #121215;
+  --bg-surface-raised: #18181b;
+  --bg-surface-hover: #27272a;
+  --border-subtle: #27272a;
+  --border-muted: #3f3f46;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --card-bg: #121215;
+  --input-bg: #18181b;
+  --shimmer-start: rgba(255, 255, 255, 0.02);
+  --shimmer-mid: rgba(255, 255, 255, 0.08);
+  --shimmer-end: rgba(255, 255, 255, 0.02);
+  --accent-crimson: #ff334b;
+  --accent-amber: #f59e0b;
+}
+
+html.light {
+  color-scheme: light;
+  --bg-canvas: #f4f4f6;
+  --bg-surface: #ffffff;
+  --bg-surface-raised: #f8fafc;
+  --bg-surface-hover: #e2e8f0;
+  --border-subtle: #e2e8f0;
+  --border-muted: #cbd5e1;
+  --text-primary: #09090b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --card-bg: #ffffff;
+  --input-bg: #ffffff;
+  --shimmer-start: rgba(0, 0, 0, 0.03);
+  --shimmer-mid: rgba(0, 0, 0, 0.08);
+  --shimmer-end: rgba(0, 0, 0, 0.03);
+  --accent-crimson: #ff334b;
+  --accent-amber: #d97706;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: 'Plus Jakarta Sans', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+/* Font Families */
+.font-jakarta {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.font-geist {
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.font-mono-data {
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* High-Grade Linear Shimmer Skeleton */
+@keyframes linear-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.shimmer-element {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--bg-surface-raised);
+}
+
+.shimmer-element::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    var(--shimmer-start) 0%,
+    var(--shimmer-mid) 50%,
+    var(--shimmer-end) 100%
+  );
+  animation: linear-shimmer 1.8s infinite cubic-bezier(0.4, 0, 0.2, 1);
+  content: '';
+}
+
+/* Custom crisp scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-muted);
+}

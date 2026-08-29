@@ -1,0 +1,217 @@
+import { supabase } from './supabase-admin';
+
+
+// Helper to generate deterministic mock 1536-dim normalized embedding based on text
+
+const SEED_COMICS = [
+  {
+    source_id: 121496,
+    id_mal: 121496,
+    slug: 'the-greatest-estate-developer',
+    title_romaji: 'Yeokdaegeup Yeongji Seolgyesa',
+    title_english: 'The Greatest Estate Developer',
+    title_native: '역대급 영지 설계사',
+    synonyms: ['The World\'s Greatest Estate Designer', 'Greatest Estate Developer'],
+    type: 'MANHWA' as const,
+    format: 'MANGA' as const,
+    status: 'RELEASING' as const,
+    synopsis: 'When civil engineering student Suho Kim falls asleep reading a fantasy novel, he wakes up in the body of Lloyd Frontera, a lazy noble known as the ultimate trash of his estate. With the Frontera family drowning in monstrous debt, Lloyd uses his modern civil engineering knowledge, ruthless economics, and cunning manipulation—along with his summoned construction demons and loyal knight Javier—to turn his barren land into the richest empire.',
+    genres: ['Comedy', 'Fantasy', 'Adventure', 'Action'],
+    tags: ['Cunning Protagonist', 'Economics', 'Kingdom Building', 'Reincarnation / Isekai', 'Anti-Hero Elements', 'Hilarious Expressions', 'No Harem'],
+    total_chapters: 160,
+    release_year: 2021,
+    average_score: 93,
+    popularity: 98000,
+    cover_image_url: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx138985-7iM3G7sK8L2s.jpg',
+    banner_image_url: 'https://s4.anilist.co/file/anilistcdn/media/manga/banner/138985-jE1430FwZq94.jpg',
+    country_of_origin: 'KR',
+    site_url: 'https://anilist.co/manga/138985',
+  },
+  {
+    source_id: 105398,
+    id_mal: 121496,
+    slug: 'solo-leveling',
+    title_romaji: 'Na Honjaman Rebeleop',
+    title_english: 'Solo Leveling',
+    title_native: '나 혼자만 레벨업',
+    synonyms: ['Only I level up', 'I Level Up Alone'],
+    type: 'MANHWA' as const,
+    format: 'MANGA' as const,
+    status: 'FINISHED' as const,
+    synopsis: '10 years ago, after the Gate that connected the real world with the monster world opened, some ordinary people received the power to hunt monsters within the Gate. They are known as Hunters. Sung Jin-Woo is known as the Weakest Hunter of All Mankind. After nearly perishing in a mysterious double dungeon, a mysterious quest window appears before him, granting him the unique ability to level up infinitely.',
+    genres: ['Action', 'Adventure', 'Fantasy'],
+    tags: ['System / Level Up', 'Overpowered MC', 'Dungeon / Gate', 'Necromancer', 'Shadow Monarch', 'Zero to Hero', 'Solo Fighter'],
+    total_chapters: 179,
+    release_year: 2018,
+    average_score: 87,
+    popularity: 340000,
+    cover_image_url: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105398-b673VNjygih3.jpg',
+    banner_image_url: 'https://s4.anilist.co/file/anilistcdn/media/manga/banner/105398-eM4k8v6Z22XQ.jpg',
+    country_of_origin: 'KR',
+    site_url: 'https://anilist.co/manga/105398',
+  },
+  {
+    source_id: 136193,
+    id_mal: 141071,
+    slug: 'return-of-the-mount-hua-sect',
+    title_romaji: 'Hwasangwihwan',
+    title_english: 'Return of the Mount Hua Sect',
+    title_native: '화산귀환',
+    synonyms: ['Return of the Blossoming Blade'],
+    type: 'MANHWA' as const,
+    format: 'MANGA' as const,
+    status: 'RELEASING' as const,
+    synopsis: 'Chung Myung, the 13th Disciple of the Mount Hua Sect and one of the Great Plum Blossom Sword Saints, slays the Heavenly Demon at the summit of Mount Hundred. He breathes his last, only to awaken 100 years in the future in the body of a beggar child. To his dismay, his beloved Mount Hua Sect has fallen into ruin and bankruptcy. Armed with his legendary martial arts and an unapologetically wild personality, Chung Myung sets out to resurrect Mount Hua.',
+    genres: ['Action', 'Adventure', 'Comedy', 'Martial Arts'],
+    tags: ['Cultivation / Murim', 'Reincarnation', 'Swordsmanship', 'Sect Rebuilding', 'Unfiltered MC', 'Martial Arts Mastery', 'No Romance'],
+    total_chapters: 145,
+    release_year: 2021,
+    average_score: 91,
+    popularity: 112000,
+    cover_image_url: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx131706-e7Xq4sR8K1wP.jpg',
+    banner_image_url: null,
+    country_of_origin: 'KR',
+    site_url: 'https://anilist.co/manga/131706',
+  },
+  {
+    source_id: 119257,
+    id_mal: 132214,
+    slug: 'omniscient-reader',
+    title_romaji: 'Jeonjijeok Dokja Sijeom',
+    title_english: 'Omniscient Reader',
+    title_native: '전지적 독자 시점',
+    synonyms: ['ORV', 'Omniscient Reader\'s Viewpoint'],
+    type: 'MANHWA' as const,
+    format: 'MANGA' as const,
+    status: 'RELEASING' as const,
+    synopsis: 'Dokja was an average office worker whose only hobby was reading his favorite web novel, "Three Ways to Survive the Apocalypse." But when the novel suddenly becomes reality, he is the only person who knows how the world will end. Armed with this knowledge, Dokja uses his understanding of the story to change the course of the plot, survive lethal scenarios, and save the world from total annihilation.',
+    genres: ['Action', 'Fantasy', 'Psychological', 'Supernatural'],
+    tags: ['Apocalypse', 'System / Level Up', 'Constellations', 'Mind Games', 'Cunning Protagonist', 'Mythology', 'Regression Companion'],
+    total_chapters: 220,
+    release_year: 2020,
+    average_score: 92,
+    popularity: 220000,
+    cover_image_url: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119257-2V3V1T6oT0wD.jpg',
+    banner_image_url: 'https://s4.anilist.co/file/anilistcdn/media/manga/banner/119257-5x6PZ6aV3aIu.jpg',
+    country_of_origin: 'KR',
+    site_url: 'https://anilist.co/manga/119257',
+  },
+  {
+    source_id: 119521,
+    id_mal: 133549,
+    slug: 'legend-of-the-northern-blade',
+    title_romaji: 'Bukgeomjeonki',
+    title_english: 'Legend of the Northern Blade',
+    title_native: '북검전기',
+    synonyms: ['Northern Blade', 'The Legend of the Northern Blade'],
+    type: 'MANHWA' as const,
+    format: 'MANGA' as const,
+    status: 'RELEASING' as const,
+    synopsis: 'For decades, the brave martial artists of the Northern Heavenly Sect fought to keep the world safe from the villainous Silent Night. But when the fourth generation leader is betrayed and forced to commit suicide, the sect collapses. His son, Jin Mu-Won, remains hidden in the ruins, secretly learning the forgotten martial arts of his ancestors. When the world is thrown into chaos again, the Northern Blade rises to claim vengeance.',
+    genres: ['Action', 'Adventure', 'Drama', 'Martial Arts'],
+    tags: ['Cultivation / Murim', 'Revenge', 'Swordsmanship', 'Masterpiece Art', 'Non-Regression', 'Hard Work', 'Political Intrigue'],
+    total_chapters: 190,
+    release_year: 2020,
+    average_score: 90,
+    popularity: 130000,
+    cover_image_url: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119521-qYqxFvn0NnXo.png',
+    banner_image_url: null,
+    country_of_origin: 'KR',
+    site_url: 'https://anilist.co/manga/119521',
+  },
+  {
+    source_id: 30002,
+    id_mal: 2,
+    slug: 'berserk',
+    title_romaji: 'Berserk',
+    title_english: 'Berserk',
+    title_native: 'ベルセルク',
+    synonyms: ['Berserk: The Golden Age Arc'],
+    type: 'MANGA' as const,
+    format: 'MANGA' as const,
+    status: 'RELEASING' as const,
+    synopsis: 'Guts, a former mercenary now known as the "Black Swordsman," is out for revenge. After a tumultuous childhood, he finally finds someone he respects and believes he can trust, only to have everything he loves torn away by betrayal and cosmic horrors. Now branded for death, Guts wields his gigantic Dragon Slayer sword to defy fate itself in a grim, unforgiving dark fantasy world.',
+    genres: ['Action', 'Adventure', 'Drama', 'Fantasy', 'Horror', 'Psychological'],
+    tags: ['Dark Fantasy', 'Masterpiece Art', 'Anti-Hero', 'Tragedy', 'Demons', 'Revenge', 'Philosophical', 'Adult Cast'],
+    total_chapters: 375,
+    release_year: 1989,
+    average_score: 94,
+    popularity: 580000,
+    cover_image_url: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30002-7507UjGZ1Vl7.jpg',
+    banner_image_url: 'https://s4.anilist.co/file/anilistcdn/media/manga/banner/30002-3R7QnS1e9h2o.jpg',
+    country_of_origin: 'JP',
+    site_url: 'https://anilist.co/manga/30002',
+  },
+  {
+    source_id: 30001,
+    id_mal: 1,
+    slug: 'monster',
+    title_romaji: 'Monster',
+    title_english: 'Monster',
+    title_native: 'MONSTER',
+    synonyms: ['Naoki Urasawa\'s Monster'],
+    type: 'MANGA' as const,
+    format: 'MANGA' as const,
+    status: 'FINISHED' as const,
+    synopsis: 'Dr. Kenzo Tenma is an elite neurosurgeon in Germany with a promising career. When faced with a moral dilemma, he chooses to operate on a critically wounded young boy instead of the city mayor. Years later, Tenma discovers that the boy he saved has grown into Johan Liebert—a ruthless, psychopathic monster capable of orchestrating mass slaughter. Plagued by guilt, Tenma embarks on a chilling cat-and-mouse chase across Europe to stop Johan.',
+    genres: ['Drama', 'Mystery', 'Psychological', 'Thriller'],
+    tags: ['Mind Games', 'Serial Killer', 'Short / Finished (<80 chapters)', 'Conspiracy', 'Philosophical', 'Moral Ambiguity', 'Detective'],
+    total_chapters: 162,
+    release_year: 1994,
+    average_score: 91,
+    popularity: 290000,
+    cover_image_url: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30001-e73T2d929K3o.jpg',
+    banner_image_url: null,
+    country_of_origin: 'JP',
+    site_url: 'https://anilist.co/manga/30001',
+  },
+  {
+    source_id: 110928,
+    id_mal: 124239,
+    slug: 'magic-emperor',
+    title_romaji: 'Mo Huang Da Guan Jia',
+    title_english: 'Magic Emperor',
+    title_native: '魔皇大管家',
+    synonyms: ['Demonic Emperor', 'The Devil Butler'],
+    type: 'MANHUA' as const,
+    format: 'MANGA' as const,
+    status: 'RELEASING' as const,
+    synopsis: 'Zhuo Yifan was the strongest Demonic Emperor, but was betrayed by his trusted disciple. Reborn into the frail body of a servant boy named Zhuo Fan in the crumbling Luo Clan, he is bound by a heart demon to protect the young lady of the clan. Ruthless, calculating, and unapologetically villainous, Zhuo Fan uses his demonic heritage and tactical genius to crush his enemies and rise to supremacy.',
+    genres: ['Action', 'Adventure', 'Fantasy', 'Supernatural'],
+    tags: ['Cunning Protagonist', 'Cultivation / Murim', 'Evil / Ruthless MC', 'Mind Games', 'Clan Wars', 'Reincarnation', 'Anti-Hero'],
+    total_chapters: 580,
+    release_year: 2019,
+    average_score: 84,
+    popularity: 95000,
+    cover_image_url: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx110928-8J5K7bV8Q2a9.jpg',
+    banner_image_url: null,
+    country_of_origin: 'CN',
+    site_url: 'https://anilist.co/manga/110928',
+  }
+];
+
+async function seed() {
+  console.log('🌱 Starting Akashic Dex database seeder...');
+
+  for (const item of SEED_COMICS) {
+    console.log(`Inserting: [${item.type}] ${item.title_english || item.title_romaji}...`);
+
+    // 1. Insert Comic
+    const { data: comic, error: comicErr } = await supabase
+      .from('comics')
+      .upsert(item, { onConflict: 'source_id' })
+      .select('id')
+      .single();
+
+    if (comicErr || !comic) {
+      console.error(`❌ Error inserting ${item.slug}:`, comicErr);
+      continue;
+    }
+
+    console.log(`✅ Seeded: ${item.title_english}`);
+  }
+
+  console.log('🎉 Seeding completed successfully!');
+}
+
+seed().catch(console.error);
