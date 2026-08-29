@@ -5,7 +5,13 @@ import { AboutAkashicBanner } from '@/components/molecules/about-akashic-banner'
 import { ComicGridView } from '@/components/organisms/comic-grid-view';
 import { ComicInspector } from '@/components/organisms/comic-inspector';
 import { useI18n } from '@/core/i18n/context';
-import { searchComicsSemantic, getComics, getRandomGemComic, PAGE_SIZE } from '@/services/comic.service';
+import {
+  searchComicsSemantic,
+  getComics,
+  getRandomGemComic,
+  findComicByTitle,
+  PAGE_SIZE,
+} from '@/services/comic.service';
 import {
   fetchTrendingWindow,
   fetchLiveRecentlyUpdated,
@@ -89,7 +95,17 @@ export function DiscoveryWorkspace({
     mode: FeedMode,
     type: ComicType | 'ALL',
     trendWindow: TrendingWindow = trendingWindow,
-    page = 1
+    page = 1,
+    /**
+     * Whether this load may take over the inspector.
+     *
+     * False when something has already been chosen for us — picking a title in
+     * the global spotlight while on another tab mounts this component fresh,
+     * which fires BOTH the external-selection effect and the initial feed load.
+     * The feed load resolves seconds later and used to overwrite the inspector
+     * with whatever happened to be first in the curated feed.
+     */
+    autoSelect = true
   ) => {
     const requestId = ++requestIdRef.current;
     if (page === 1) {
@@ -117,6 +133,7 @@ export function DiscoveryWorkspace({
 
       if (
         page === 1 &&
+        autoSelect &&
         data.length > 0 &&
         typeof window !== 'undefined' &&
         window.innerWidth >= 1024
@@ -165,7 +182,9 @@ export function DiscoveryWorkspace({
       handleSearch(initialPrompt);
       return;
     }
-    loadFeedData(feedMode, selectedType);
+    // A spotlight pick arrives with this component's very first render; don't
+    // let the feed that loads behind it steal the inspector.
+    loadFeedData(feedMode, selectedType, trendingWindow, 1, !externalSelectedComic);
   }, [initialPrompt]);
 
   // Handle Semantic Discovery Query (AI Powered)
@@ -222,13 +241,13 @@ export function DiscoveryWorkspace({
     }
 
     try {
-      const matches = await getComics({ query: title, limit: 10 });
-      if (matches.length > 0) {
-        const topMatch = matches[0] as ComicSearchResult;
-        setResults((prev) => [topMatch, ...prev.filter((p) => p.id !== topMatch.id)]);
-        setSelectedComic(topMatch);
-      } else {
-        handleSearch(title);
+      // Was falling back to a full AI search, which spends a daily quota prompt
+      // just to open a title the user already pointed at. findComicByTitle hits
+      // the catalog and then AniList directly — no model involved.
+      const found = await findComicByTitle(title);
+      if (found) {
+        setResults((prev) => [found, ...prev.filter((p) => p.id !== found.id)]);
+        setSelectedComic(found);
       }
     } catch (err) {
       console.error('Failed to open related title:', err);

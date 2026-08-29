@@ -98,6 +98,33 @@ export interface SemanticSearchResult {
 }
 
 /**
+ * Resolve a bare title to something the inspector can display.
+ *
+ * Community recommendations and franchise relations come from AniList and carry
+ * only a title string, and plenty of them are not in the local catalog — so a
+ * catalog-only lookup silently returns nothing and the click appears dead.
+ * Falls through to AniList so every recommendation is always openable.
+ */
+export async function findComicByTitle(title: string): Promise<ComicSearchResult | null> {
+  const trimmed = title.trim();
+  if (!trimmed) return null;
+
+  const matches = await getComics({ query: trimmed, limit: 5 });
+  if (matches.length > 0) {
+    // Prefer an exact title hit over the most popular substring match.
+    const exact = matches.find(
+      (c) =>
+        c.title_english?.toLowerCase() === trimmed.toLowerCase() ||
+        c.title_romaji?.toLowerCase() === trimmed.toLowerCase()
+    );
+    return (exact ?? matches[0]) as ComicSearchResult;
+  }
+
+  const live = await searchLiveAniList(trimmed, 1);
+  return live[0] ?? null;
+}
+
+/**
  * Checks if user is asking an AI recommendation query vs typing a direct title.
  */
 function isSemanticIntent(query: string): boolean {

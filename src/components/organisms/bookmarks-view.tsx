@@ -5,7 +5,7 @@ import { ComicInspector } from '@/components/organisms/comic-inspector';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/core/i18n/context';
 import { supabase } from '@/lib/supabase/client';
-import { PAGE_SIZE } from '@/services/comic.service';
+import { findComicByTitle, PAGE_SIZE } from '@/services/comic.service';
 import type { BookmarkMap, ReadingStatus } from '@/core/types/bookmark';
 import type { ComicSearchResult } from '@/core/types/comic';
 import { cn } from '@/lib/utils/cn';
@@ -79,6 +79,23 @@ export function BookmarksView({
   const loadMore = useCallback(() => {
     setVisibleCount((n) => n + PAGE_SIZE);
   }, []);
+
+  // Recommendations are openable here too, but they are NOT injected into the
+  // grid: this view is the user's saved library, and a title they never
+  // bookmarked has no business appearing in it.
+  const handleSelectRelatedTitle = async (title: string) => {
+    const lower = title.toLowerCase();
+    const saved = bookmarkedComics.find(
+      (c) => c.title_english?.toLowerCase() === lower || c.title_romaji?.toLowerCase() === lower
+    );
+    if (saved) {
+      setSelectedComic(saved);
+      return;
+    }
+
+    const found = await findComicByTitle(title);
+    if (found) setSelectedComic(found);
+  };
 
   const countByStatus = {
     ALL: bookmarkedComics.length,
@@ -198,9 +215,10 @@ export function BookmarksView({
           comic={selectedComic}
           onClose={() => setSelectedComic(null)}
           onToggleBookmark={onToggleBookmark}
-          isBookmarked={true}
+          isBookmarked={Boolean(bookmarks[selectedComic.id])}
           bookmarkItem={bookmarks[selectedComic.id] || null}
           onUpdateBookmarkStatus={onUpdateBookmarkStatus}
+          onSelectRelatedTitle={handleSelectRelatedTitle}
         />
       )}
     </div>

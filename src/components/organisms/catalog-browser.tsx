@@ -4,7 +4,7 @@ import { ComicGridView } from '@/components/organisms/comic-grid-view';
 import { ComicInspector } from '@/components/organisms/comic-inspector';
 import { useI18n } from '@/core/i18n/context';
 import { POPULAR_GENRES, POPULAR_TROPES, resolveTropeFilters } from '@/core/constants/comic-genres';
-import { getComics, PAGE_SIZE } from '@/services/comic.service';
+import { getComics, findComicByTitle, PAGE_SIZE } from '@/services/comic.service';
 import type { BookmarkMap, ReadingStatus } from '@/core/types/bookmark';
 import type { ComicSearchResult, ComicType, ComicStatus } from '@/core/types/comic';
 import { cn } from '@/lib/utils/cn';
@@ -117,6 +117,28 @@ export function CatalogBrowser({
     if (isLoading || isLoadingMore || !hasMore) return;
     fetchCatalog(pageRef.current + 1);
   }, [fetchCatalog, isLoading, isLoadingMore, hasMore]);
+
+  // Community recommendations / franchise relations in the inspector hand back a
+  // bare title. Without this the inspector rendered them as clickable rows that
+  // did nothing at all — ComicInspector calls `onSelectRelatedTitle?.()`, and
+  // only DiscoveryWorkspace ever passed one.
+  const handleSelectRelatedTitle = async (title: string) => {
+    const lower = title.toLowerCase();
+    const alreadyLoaded = comics.find(
+      (c) => c.title_english?.toLowerCase() === lower || c.title_romaji?.toLowerCase() === lower
+    );
+    if (alreadyLoaded) {
+      setSelectedComic(alreadyLoaded);
+      return;
+    }
+
+    const found = await findComicByTitle(title);
+    if (!found) return;
+
+    // Surface it in the grid too, so the selection has a visible anchor.
+    setComics((prev) => [found, ...prev.filter((c) => c.id !== found.id)]);
+    setSelectedComic(found);
+  };
 
   const toggleGenre = (genre: string) => {
     setSelectedGenres((prev) =>
@@ -382,6 +404,7 @@ export function CatalogBrowser({
           isBookmarked={bookmarkedIds.has(selectedComic.id)}
           bookmarkItem={bookmarks[selectedComic.id] || null}
           onUpdateBookmarkStatus={onUpdateBookmarkStatus}
+          onSelectRelatedTitle={handleSelectRelatedTitle}
         />
       )}
     </div>
